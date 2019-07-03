@@ -1,3 +1,8 @@
 *
 !README.md
 !SWI_analysis.py
+!example_files
+!example_files/*
+!images
+!images/*
+!requirements.txt
