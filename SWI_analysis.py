@@ -6,12 +6,6 @@ Created on Wed Aug  8 14:30:58 2018
 
 This is a GUI for single worm imaging data.
 
-ADD: 
-    Comments on data input structure
-
-length = []
-for i in np.arange(0,20):
-    length.append(intmolts[0,4,i]-intmolts[0,0,i])
 """
 
 
@@ -42,7 +36,7 @@ LARGE_FONT = ("Verdana", 12)
 dt = 0.16666666 # sampling interval in hours
 
 
-dev_length = 231 #in time points
+dev_length = 231 #in time points, has to be adjusted for individual experiments
 
 
 class SWI_analysis(tk.Tk):
@@ -161,17 +155,6 @@ def gfp_ana(self):
         scaled_L2[:,i] = np.interp(np.arange(0,mean_L2), np.arange(0,(intmolts[0,2,i] - intmolts[0,1,i])), gfpdata.iloc[int(intmolts[0,1,i]):int(intmolts[0,2,i]),i])
         scaled_L3[:,i] = np.interp(np.arange(0,mean_L3), np.arange(0,(intmolts[0,3,i] - intmolts[0,2,i])), gfpdata.iloc[int(intmolts[0,2,i]):int(intmolts[0,3,i]),i])
         scaled_L4[:,i] = np.interp(np.arange(0,mean_L4), np.arange(0,(intmolts[0,4,i] - intmolts[0,3,i])), gfpdata.iloc[int(intmolts[0,3,i]):int(intmolts[0,4,i]),i])
-
-    std_dev_L1 = np.nanstd(scaled_L1, axis=1)
-    std_dev_L2 = np.nanstd(scaled_L2, axis=1)
-    std_dev_L3 = np.nanstd(scaled_L3, axis=1)
-    std_dev_L4 = np.nanstd(scaled_L4, axis=1)
-
-    mean_gfp_L1 = np.nanmean(scaled_L1, axis=1)
-    mean_gfp_L2 = np.nanmean(scaled_L2, axis=1)
-    mean_gfp_L3 = np.nanmean(scaled_L3, axis=1)
-    mean_gfp_L4 = np.nanmean(scaled_L4, axis=1)
-
 
 
     new_molt = molts[:,:,:]-intmolts[0,0:4,:]
@@ -410,8 +393,8 @@ def gfp_ana(self):
             a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth, alpha = 0.3)        
         a1.set_title("GFP intensities, rel to hatch", fontsize=12)
         a1.set_xlabel("Time after hatch (h)", size=15)
-        a1.set_ylim(np.min(np.min(gfpdata)), 600)
-        a1.set_xlim(0, 20)
+        a1.set_ylim(np.min(np.min(gfpdata)), np.max(np.max(gfpdata)))
+        a1.set_xlim(0, dev_length/6)
         a1.set_ylabel("GFP intensities (a.u.)", size=15)        
         a1.set_facecolor("None")
         a1.tick_params(axis='both', which='major', labelsize=15)
@@ -465,7 +448,6 @@ def gfp_ana(self):
     a3.set_xticklabels([1,2,3,4])
     a3.set_xticklabels(["L1", "L2","L3", "L4"], minor=True)
     a3.tick_params(axis='both', which='major', labelsize=15)
-    a3.legend(loc=(-0.15,-0.15), prop={'size': 6})
     
     colors = ['grey', 'grey', 'grey', 'grey']
     for whisker in box3['whiskers']:
@@ -486,12 +468,12 @@ def gfp_ana(self):
     a3.spines['top'].set_visible(False)
     a3.yaxis.set_ticks_position('left')
     a3.xaxis.set_ticks_position('bottom')
-    a3.legend([box3["boxes"][0], box3_1["boxes"][0]], ['Molt entry phase', 'Molt exit phase'], loc="best", prop={'size': 10})  
+    a3.legend([box3["boxes"][0], box3_1["boxes"][0]], ['Molt entry phase', 'Molt exit phase'], loc="best", prop={'size': 10}, frameon=False)  
     
 
     plt.style.use("bmh")
     plt.style.use("classic")
- 
+
     a1_1 = f.add_subplot(245)
     for i in np.arange(0,2):
         a1_1.bar(i+1.85,prop_err_entry[i].std_dev/np.std(molt_ph_entry[i+1]), color="grey", width=0.3, label="entry")
@@ -504,7 +486,7 @@ def gfp_ana(self):
     a1_1.set_ylabel("sd exp / sd obs")
     a1_1.set_xlabel("larval stage")
     a1_1.hlines(1,1.5,3.5)
-    a1_1.legend(loc=2, fontsize="xx-small")  
+    a1_1.legend(loc=2, fontsize="xx-small", frameon=False)  
     
 
     periods_and_LS = [L2_dur_wt, period_L2, L3_dur_wt, period_L3, L4_dur_wt, period_L4]
@@ -544,122 +526,7 @@ def gfp_ana(self):
 
 
     root2.destroy()
-
-def gfp_segments(self):
-
-    root2 = tk.Tk()
-    root2.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
-
-    gfpdata_seg = pd.read_csv(root2.filename)
-    
-
-    seg_1 = []
-    seg_2 = []
-    seg_3 = []
-    seg_4 = []
-    seg_5 = []
-
-
-    for i in gfpdata_seg.Position.unique():
-        seg1 = gfpdata_seg[(gfpdata_seg.Position==i) & (gfpdata_seg.start==0)]
-        seg_1.append(seg1.iloc[:,3])
-        seg2 = gfpdata_seg[(gfpdata_seg.Position==i) & (gfpdata_seg.start==0.2)]
-        seg_2.append(seg2.iloc[:,3])
-        seg3 = gfpdata_seg[(gfpdata_seg.Position==i) & (gfpdata_seg.start==0.4)]
-        seg_3.append(seg3.iloc[:,3])
-        seg4 = gfpdata_seg[(gfpdata_seg.Position==i) & (gfpdata_seg.start==0.6)]
-        seg_4.append(seg4.iloc[:,3])
-        seg5 = gfpdata_seg[(gfpdata_seg.Position==i) & (gfpdata_seg.start==0.8)]
-        seg_5.append(seg5.iloc[:,3])
-  
-#combine middle segments per worm
-    segments_all = []
-    for i in np.arange(0,len(seg_1)):   
-    
-        segments_all.append(seg_2[i])
-        segments_all.append(seg_3[i])
-        segments_all.append(seg_4[i])
-    
-    tfa_lib = imp.load_source('tfa_lib', 'G:/user/Yannick.Hauser/Python/Analysis/Wavelets/New script Gregor 20180115_new/blmp-1D/Code/tfa_lib_COI.py')
-
-    import tfa_lib as tfa
-
-    # don't show the plots on the screen or not
-    plt.ion()
-
-    # better use pandas load_excel or similar
-    data = segments_all
-    dt = 0.16666666 # sampling interval in hours
-    periods = np.linspace(5, 15, 100) # periods to scan for in hours
-    T_c = 25 # cut off period in hours
-
-    # the analyser in hours
-    wAn = tfa.TFAnalyser(periods = periods, dt = dt, T_cut_off = T_c)
-    
-    # name for the results
-    phase_all = []
-    Ampl_all = []
-
-    # loop over trajectories
-    for i,traj in enumerate(data):
-        
-        print('working on signal {}'.format(i))
-        
-        wAn.new_signal(traj, name = str(i)) # if header names available, put here
-        wAn.compute_spectrum(Plot = True, time_label = 'h') 
-        rd = wAn.get_maxRidge(Thresh = 0) # threshold maybe later
-        wAn.draw_maxRidge(color = 'crimson', lw = 3, alpha = 0.8)
-        
-        phase_all.append(np.angle(rd["z"]))
-        
-        Ampl_all.append(np.abs(rd["z"]))
-      
-
-
-
-    f = Figure(figsize=(12,4), dpi=100)
-    a1 = f.add_subplot(121)
-
-    a1.plot(np.arange(0,len(seg_2[0])), seg_2[0], color="black")    
-    a1.plot(np.arange(0,len(seg_3[0])), seg_3[0], color="green")    
-    a1.plot(np.arange(0,len(seg_4[0])), seg_4[0], color="red")    
-    a1.set_title("Segments of worm #1", size=15)
-    a1.set_xlabel("Time points", size=15)
-    a1.set_ylabel("GFP intensity [a.u.]", size=15)
-    a1.set_facecolor("None")
-    a1.tick_params(axis='both', which='major', labelsize=10)
-    a1.spines['right'].set_visible(False)
-    a1.spines['top'].set_visible(False)
-    a1.yaxis.set_ticks_position('left')
-    a1.xaxis.set_ticks_position('bottom')
-    a1.set_facecolor("None")
-
-    a2 = f.add_subplot(122)
-
-    for i in np.arange(0,len(seg_1)):
-        a2.scatter(np.unwrap(phase_all[3*i]), np.unwrap(phase_all[3*i+1]), s=5, color = "red", alpha=0.1)
-        a2.scatter(np.unwrap(phase_all[3*i]), np.unwrap(phase_all[3*i+2]), s=5, color = "blue", alpha=0.1)
-    a2.set_title("Phase-Phase correlation of segments", size =15)
-    a2.set_ylabel("Phase segment a", size=15)
-    a2.set_xlabel("Phase segment b", size=15)
-    a2.set_facecolor("None")
-    a2.tick_params(axis='both', which='major', labelsize=10)
-    a2.spines['right'].set_visible(False)
-    a2.spines['top'].set_visible(False)
-    a2.yaxis.set_ticks_position('left')
-    a2.xaxis.set_ticks_position('bottom')
-    a2.set_facecolor("None")
-
-    canvas = FigureCanvasTkAgg(f, self)
-    canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-    toolbar = NavigationToolbar2Tk(canvas, self)
-    toolbar.update()
-    canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-
-    root2.destroy()
-   
+ 
 
 def stage_dur(self):
 
@@ -835,11 +702,8 @@ class StartPage(tk.Frame):
         button2 = tk.Button(self, text = "Analyze GFP", command = lambda:gfp_ana(self))
         button2.pack()
         
-        button3 = tk.Button(self, text = "Analyze Segments", command = lambda:gfp_segments(self))
+        button3 = tk.Button(self, text = "Analyze stage durations", command = lambda:stage_dur(self))
         button3.pack()
-
-        button4 = tk.Button(self, text = "Analyze stage durations", command = lambda:stage_dur(self))
-        button4.pack()
 
 
 app = SWI_analysis()
