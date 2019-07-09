@@ -1,0 +1,6 @@
+cd C:\Users\hausyann\SWI_analysis
+git status
+git add SWI_analysis
+git commit -m "removed unnecessary button, adjusted legends and axes"
+git push origin master
+doskey /HISTORY > C:\Users\hausyann\Desktop\history_gitpush_SWI_analysis_20190706.txt
