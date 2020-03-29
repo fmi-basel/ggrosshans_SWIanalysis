@@ -8,7 +8,6 @@ This is a GUI for single worm imaging data.
 
 """
 
-
 import tkinter as tk
 from tkinter.ttk import Button
 from tkinter import filedialog, messagebox
@@ -36,7 +35,7 @@ LARGE_FONT = ("Verdana", 12)
 dt = 0.16666666 # sampling interval in hours
 
 
-dev_length = 231 #in time points, has to be adjusted for individual experiments
+#dev_length = 231 #in time points, has to be adjusted for individual experiments
 
 
 class SWI_analysis(tk.Tk):
@@ -71,6 +70,7 @@ def leth_ana():
 
     root1 = tk.Tk()
     root1.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
+    global leth
     leth = pd.DataFrame(pd.read_csv(root1.filename))
 
     global intmolts
@@ -129,6 +129,16 @@ def gfp_ana(self):
     #gfpdata = gfpdata.pivot("Frame","Position","Mean (Statistic Features)")        
     gfpdata = gfpdata.pivot("Frame","Position","Intensity_BGsub")        
 
+    #add user input for dev_length input
+    root3 = tk.Tk()
+    root3.title("Input developmental length")
+    canvas1 = tk.Canvas(root3, width = 400, height = 300)
+    canvas1.pack()
+    entry1 = tk.Entry(root3) 
+    canvas1.create_window(200, 140, window=entry1)
+
+    dev_length = entry1.get()
+    
 
     for i in np.arange(0,len(gfpdata.columns)):
         f = gfpdata.interpolate(method = 'linear', axis =0, limit = 60, limit_direction = 'backward')
@@ -379,7 +389,7 @@ def gfp_ana(self):
 
     f = plt.figure(figsize=(15,5), dpi=150)
     
-    a1 = f.add_subplot(241)
+    a1 = f.add_subplot(231)
     linewidth=0.3
     
     
@@ -411,7 +421,7 @@ def gfp_ana(self):
     norm = Normalize(vmin=-3.2, vmax=3.2)
     
     #for scatter
-    a2 = f.add_subplot(242)
+    a2 = f.add_subplot(232)
     size=0.3
     for i in np.arange(0,len(gfpdata.columns)):
         a2.scatter(np.arange(0,dev_length)/6, np.repeat(i, dev_length), color = cmap(norm(my_phase[i])), s=size)
@@ -433,7 +443,7 @@ def gfp_ana(self):
     a2.xaxis.set_ticks_position('bottom')
     
 
-    a3 = f.add_subplot(243)
+    a3 = f.add_subplot(233)
     size=30
     molt_ph_entry = [corr_molt_entr_ph_L1,molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4]
     box3 = a3.boxplot(molt_ph_entry, patch_artist=True, showfliers = True, showcaps=False, boxprops=dict(facecolor="grey"))
@@ -474,16 +484,16 @@ def gfp_ana(self):
     plt.style.use("bmh")
     plt.style.use("classic")
 
-    a1_1 = f.add_subplot(245)
+    a1_1 = f.add_subplot(235)
     for i in np.arange(0,2):
-        a1_1.bar(i+1.85,prop_err_entry[i].std_dev/np.std(molt_ph_entry[i+1]), color="grey", width=0.3, label="entry")
-        a1_1.bar(i+2.15,prop_err_exit[i].std_dev/np.std(molt_ph_exit[i+1]), color="blue", width=0.3, label="exit")
+        a1_1.bar(i+1.85,np.std(molt_ph_entry[i+1])/prop_err_entry[i].std_dev, color="grey", width=0.3, label="entry")
+        a1_1.bar(i+2.15,np.std(molt_ph_exit[i+1])/prop_err_exit[i].std_dev, color="blue", width=0.3, label="exit")
     a1_1.set_facecolor("None")
     a1_1.spines['right'].set_visible(False)
     a1_1.spines['top'].set_visible(False)
     a1_1.yaxis.set_ticks_position('left')
     a1_1.xaxis.set_ticks_position('bottom')
-    a1_1.set_ylabel("sd exp / sd obs")
+    a1_1.set_ylabel("sd obs / sd exp")
     a1_1.set_xlabel("larval stage")
     a1_1.hlines(1,1.5,3.5)
     a1_1.legend(loc=2, fontsize="xx-small", frameon=False)  
@@ -491,7 +501,7 @@ def gfp_ana(self):
 
     periods_and_LS = [L2_dur_wt, period_L2, L3_dur_wt, period_L3, L4_dur_wt, period_L4]
                        
-    a4 = f.add_subplot(244)
+    a4 = f.add_subplot(234)
     box4 = a4.boxplot(periods_and_LS, patch_artist=True, showfliers = True, showcaps=False)
     a4.set_ylim(5,14)
     #a4.set_xlim(0, dev_length/6)
