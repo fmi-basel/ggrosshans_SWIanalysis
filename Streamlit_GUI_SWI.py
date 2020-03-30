@@ -544,7 +544,6 @@ if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
     a1.set_ylabel("Durations (h)")
     a1.spines["top"].set_visible(False)
     a1.spines["right"].set_visible(False)
-    plt.tight_layout()  
     
     a1_1 = f.add_subplot(122)
     sns.barplot(x = "observation", y = "ratio", data = std_phases_all, 
@@ -552,7 +551,7 @@ if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
     a1_1.legend(loc=2, fontsize="small", frameon=False)  
     a1_1.spines["top"].set_visible(False)
     a1_1.spines["right"].set_visible(False)
-    fig.tight_layout()
+    plt.tight_layout()
 
     st.pyplot()
 
