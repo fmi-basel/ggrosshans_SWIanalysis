@@ -513,8 +513,9 @@ if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
     std_phases_entry = molt_ph_entry[["variable", "value"]].groupby("variable").std()
     error_prop_std_entry = []
     error_prop_std_entry.append(np.nan)
-    for i in np.arange(0,3):
+    for i in np.arange(0,2):
         error_prop_std_entry.append(prop_err_entry[i].std_dev)
+    error_prop_std_entry.append(np.nan)
 
     std_phases_entry["error_prop_std"] = error_prop_std_entry
     std_phases_entry["ratio"] = std_phases_entry["value"]/std_phases_entry["error_prop_std"]
@@ -523,8 +524,9 @@ if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
     std_phases_exit = molt_ph_exit[["variable", "value"]].groupby("variable").std()
     error_prop_std_exit = []
     error_prop_std_exit.append(np.nan)
-    for i in np.arange(0,3):
+    for i in np.arange(0,2):
         error_prop_std_exit.append(prop_err_exit[i].std_dev)
+    error_prop_std_exit.append(np.nan)
 
     std_phases_exit["error_prop_std"] = error_prop_std_exit
     std_phases_exit["ratio"] = std_phases_exit["value"]/std_phases_exit["error_prop_std"]
@@ -551,6 +553,7 @@ if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
     a1_1.legend(loc=2, fontsize="small", frameon=False)  
     a1_1.spines["top"].set_visible(False)
     a1_1.spines["right"].set_visible(False)
+    a1_1.set_ylim(0,1.1)
     plt.tight_layout()
 
     st.pyplot()
