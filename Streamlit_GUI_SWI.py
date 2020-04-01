@@ -11,9 +11,11 @@ from scipy.signal import hilbert
 from uncertainties import ufloat
 import streamlit as st
 import time
+from bokeh.plotting import figure, output_file, show
+import matplotlib
 
-
-
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 
 
@@ -23,11 +25,11 @@ st.title("SWI Analyzer :snake: :microscope:")
 st.header("Import the data")
 
 
-uploaded_file = st.file_uploader("Choose files for lethargus and GFP data", type="csv")
+uploaded_file = st.file_uploader("Choose files for lethargus data", type="csv")
 if uploaded_file is not None:
     st.subheader(uploaded_file)
     #data = pd.read_csv(uploaded_file)
-    #st.write(data.head())
+    #st.subheader(data.columns())
 
 
 leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH5_20180504/Lethargus_pYPH5_EV_blmp1_clean_clean.csv")
@@ -104,7 +106,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
 
     st.sidebar.subheader("chose developmental length (in time points)")
-    dev_length = st.sidebar.slider("", 0, 360 - int(np.max(intmolts[0,0,:])), 231)
+    dev_length = st.sidebar.number_input("", 0, 360 - int(np.max(intmolts[0,0,:])), 231)
 
 
 
@@ -119,13 +121,10 @@ if st.sidebar.checkbox("start lethargus analysis"):
     gfp_adj = np.asarray(gfp_adj)
 
 
-
-
-
     st.subheader("Raw GFP data with molts in red")
 
 
-    f = plt.figure(figsize=(8,3), dpi=150)
+    f = plt.figure(figsize=(8,4), dpi=150)
 
     a1 = f.add_subplot(111)
     linewidth=0.3
@@ -154,8 +153,14 @@ if st.sidebar.checkbox("start lethargus analysis"):
     a1.plot(np.arange(0,dev_length)/6, np.nanmean(gfp_adj, axis=0))
     a1.fill_between(np.arange(0,dev_length)/6, np.nanmean(gfp_adj, axis=0)-np.nanstd(gfp_adj, axis=0), np.nanmean(gfp_adj, axis=0)+np.nanstd(gfp_adj, axis=0), color="royalblue", alpha=0.4)
     plt.tight_layout()
+    
+    if st.checkbox("click for saving figure 1"):
+        save_fig1 = str(st.text_input("location/filename to save the figure:", ""))
+        plt.savefig(save_fig1)
+        st.pyplot()
+    else:
+        st.pyplot()
 
-    st.pyplot()
 
 
 
@@ -177,7 +182,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
     if st.sidebar.checkbox("highlight molt times in comparison to developmental length"):
 
 
-        f = plt.figure(figsize=(8,3), dpi=150)
+        f = plt.figure(figsize=(8,4), dpi=150)
 
         a1 = f.add_subplot(111)
         linewidth=0.3
@@ -193,7 +198,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
             a1.axvline(dev_length/6, 0, np.max(np.max(f_clean[i])), color="black")
             a1.set_title("GFP intensities, interpolated and relative to hatch", fontsize=10)
             a1.set_xlabel("Time after hatch (h)", size=10)
-            a1.set_ylim(np.min(np.min(f_clean[i])), np.max(np.max(f_clean[i])))
+            a1.set_ylim(np.min(np.min(f_clean)), np.max(np.max(f_clean)))
             a1.set_xlim(0, len(gfpdata)/6)
             a1.set_ylabel("GFP intensities (a.u.)", size=10)        
             a1.set_facecolor("None")
@@ -203,8 +208,12 @@ if st.sidebar.checkbox("start lethargus analysis"):
             a1.yaxis.set_ticks_position('left')
             a1.xaxis.set_ticks_position('bottom')
         plt.tight_layout()
-        st.pyplot()
-
+        if st.checkbox("click for saving figure 2"):
+            save_fig2 = str(st.text_input("location/filename to save the figure:", ""))
+            plt.savefig(save_fig2)
+            st.pyplot()
+        else:
+            st.pyplot()
 
 
 
@@ -439,17 +448,40 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
     if st.sidebar.checkbox("plot molt, intermolt and larval stage duration"):
         st.subheader("Molt, Intermolt and Larval stage durations in hours")
-        fig, ax = plt.subplots(1,3, figsize=(9,3), dpi=150)
+        y_lim_low_molt = st.sidebar.number_input("molt y-axis lower limit", 0,100, 0)
+        y_lim_high_molt = st.sidebar.number_input("molt y-axis upper limit", 0,100, 5)
+        y_lim_low_intermolt = st.sidebar.number_input("intermolt y-axis lower limit", 0,100, 0)
+        y_lim_high_intermolt = st.sidebar.number_input("intermolt y-axis upper limit", 0,100, 17)
+        y_lim_low_larvalstage = st.sidebar.number_input("larval stage y-axis lower limit", 0,100, 0)
+        y_lim_high_larvalstage = st.sidebar.number_input("larval stage y-axis upper limit", 0,100, 17)
+        
+        fig, ax = plt.subplots(1,3, figsize=(21,7), dpi=150)
         width = 0.8
+        labelsize = 30
         sns.boxplot(x = "variable", y = "value", data = molt_dur, width = width, palette = "Blues", ax = ax[0])
         sns.boxplot(x = "variable", y = "value", data = intermolt_dur, width = width, palette = "Greens", ax = ax[1])
         sns.boxplot(x = "variable", y = "value", data = larval_stage_dur, width = width, palette = "Greys", ax = ax[2])
+        ax[0].set_ylim(y_lim_low_molt, y_lim_high_molt)
+        ax[1].set_ylim(y_lim_low_intermolt, y_lim_high_intermolt)
+        ax[2].set_ylim(y_lim_low_larvalstage, y_lim_high_larvalstage)
+        ax[0].set_ylabel("duration (h)", size = labelsize)
+        ax[1].set_ylabel("")
+        ax[2].set_ylabel("")
+
         for axis in ax:
             axis.spines["top"].set_visible(False)
             axis.spines["right"].set_visible(False)
-            axis.set_ylim(0,15)
-        fig.tight_layout()
-        st.pyplot()
+            axis.tick_params(labelsize=labelsize)
+            axis.set_xlabel("")
+        fig.tight_layout(w_pad = 5)
+
+        if st.checkbox("click for saving figure 3"):
+            save_fig3 = str(st.text_input("location/filename to save the figure:", ""))
+            plt.savefig(save_fig3)
+            st.pyplot()
+        else:
+            st.pyplot()
+     
 
 
 
@@ -491,21 +523,22 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
 
         molt_ph_entry = pd.DataFrame([corr_molt_entr_ph_L1,molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-        molt_ph_entry["exit"] = False
+        molt_ph_entry["Molt"] = "entry"
         
         molt_ph_exit = pd.DataFrame([corr_molt_exit_ph_L1,molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-        molt_ph_exit["exit"] = True
+        molt_ph_exit["Molt"] = "exit"
 
         molt_phases = molt_ph_entry.append(molt_ph_exit)
         
         #plot
         ax = f.add_subplot(122)
         sns.boxplot(x = "variable", y = "value", data = molt_phases,
-        hue="exit", palette = "Blues", ax = ax)
+        hue="Molt", palette = "Blues", ax = ax)
         ax.set_ylabel("Phase (rad)")
         ax.set_xlabel("Molts")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
+        ax.legend(frameon=False)
         plt.tight_layout()
 
         st.pyplot()
@@ -515,23 +548,19 @@ if st.sidebar.checkbox("start lethargus analysis"):
         #period and larval stage duration and error propagated plots
 
         #prepare error propagated data 
-        std_phases_entry = molt_ph_entry[["variable", "value"]].groupby("variable").std()
+        std_phases_entry = molt_ph_entry[["variable", "value"]].groupby("variable").std().iloc[1:3,:]
         error_prop_std_entry = []
-        error_prop_std_entry.append(np.nan)
         for i in np.arange(0,2):
             error_prop_std_entry.append(prop_err_entry[i].std_dev)
-        error_prop_std_entry.append(np.nan)
 
         std_phases_entry["error_prop_std"] = error_prop_std_entry
         std_phases_entry["ratio"] = std_phases_entry["value"]/std_phases_entry["error_prop_std"]
         std_phases_entry["entry_or_exit"] = "entry"
 
-        std_phases_exit = molt_ph_exit[["variable", "value"]].groupby("variable").std()
+        std_phases_exit = molt_ph_exit[["variable", "value"]].groupby("variable").std().iloc[1:3,:]
         error_prop_std_exit = []
-        error_prop_std_exit.append(np.nan)
         for i in np.arange(0,2):
             error_prop_std_exit.append(prop_err_exit[i].std_dev)
-        error_prop_std_exit.append(np.nan)
 
         std_phases_exit["error_prop_std"] = error_prop_std_exit
         std_phases_exit["ratio"] = std_phases_exit["value"]/std_phases_exit["error_prop_std"]
@@ -539,22 +568,27 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         std_phases_all = std_phases_exit.append(std_phases_entry)
         
-        std_phases_all["observation"] = std_phases_all.index + std_phases_all["entry_or_exit"]
+        std_phases_all["observation"] = std_phases_all.index
+        
         #plot
 
         f = plt.figure(figsize=(8,3), dpi=150)
-
+        
+        y_lim_low_LS_and_PER = st.sidebar.number_input("y-axis lower limit of larval stage and period", 0,100, 0)
+        y_lim_high_LS_and_PER = st.sidebar.number_input("y-axis upper limit of larval stage and period", 0,100, 17)
+        
         periods_and_LS = pd.DataFrame([L2_dur_wt, period_L2, L3_dur_wt, period_L3, L4_dur_wt, period_L4], index = ["L2_dur", "L2_period", "L3_dur", "L3_period", "L4_dur", "L4_period"]).T.melt()
         a1 = f.add_subplot(121)
         sns.boxplot(x = "variable", y = "value", data = periods_and_LS,
         palette = "Greys", ax = a1)
+        a1.set_ylim(y_lim_low_LS_and_PER, y_lim_high_LS_and_PER)
         a1.set_ylabel("Durations (h)")
         a1.spines["top"].set_visible(False)
         a1.spines["right"].set_visible(False)
         
         a1_1 = f.add_subplot(122)
         sns.barplot(x = "observation", y = "ratio", data = std_phases_all, 
-        hue="entry_or_exit", palette = "Blues", ax = a1_1)
+        color="observation", hue = "entry_or_exit", palette = "Blues_r", ax = a1_1)
         a1_1.legend(loc=2, fontsize="small", frameon=False)  
         a1_1.spines["top"].set_visible(False)
         a1_1.spines["right"].set_visible(False)
