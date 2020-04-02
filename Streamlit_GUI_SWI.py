@@ -217,17 +217,15 @@ if st.sidebar.checkbox("start lethargus analysis"):
         evaluated = st.sidebar.checkbox("valid worm", value = True)
     valid_worms[worm_to_check] = evaluated
 
-
-
     #filter gfpdata and lethargus for valid samples
 
+    leth_clean = leth.iloc[:,1:].loc[:,valid_worms==True]
+    leth_clean.insert(loc=0, column='Timepoint', value=leth["Timepoint"])
 
-
-
-
-
-
-
+    f_clean_df = pd.DataFrame(f_clean).T
+    f_clean_df_clean = f_clean_df.loc[:,valid_worms==True]
+    intmolts_clean = intmolts[:,:,valid_worms]
+    molts_clean = molts[:,:,valid_worms]
     #plot f_clean (interpolated data) to investigate molts and developmental length in 
     #more detail
     st.sidebar.title("Plot developmental durations")
@@ -238,19 +236,18 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         a1 = f.add_subplot(111)
         linewidth=0.3
-
-        len(f_clean[i])
-        for i in np.arange(0,len(f_clean)): 
-            a1.plot(np.arange(0,dev_length)/6, f_clean[i], color="black", linewidth=linewidth, alpha = 0.3)
+        
+        for i in np.arange(0,len(f_clean_df_clean.columns)): 
+            a1.plot(np.arange(0,dev_length)/6, f_clean_df_clean.iloc[:,i], color="black", linewidth=linewidth, alpha = 0.3)
 
             for n in np.arange(0,4):
-                molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
-                gfp_dMolt = f_clean[i][int(molts[0,n,i])-int(intmolts[0,0,i]):int(molts[1,n,i]+1)-int(intmolts[0,0,i])]
+                molt_tp = np.arange((molts_clean[0,n,i])-int(intmolts_clean[0,0,i]),(molts_clean[1,n,i]+1-int(intmolts_clean[0,0,i])))
+                gfp_dMolt = f_clean_df_clean.iloc[:,i][int(molts_clean[0,n,i])-int(intmolts_clean[0,0,i]):int(molts_clean[1,n,i]+1)-int(intmolts_clean[0,0,i])]
                 a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth+1, alpha = 1)        
-            a1.axvline(dev_length/6, 0, np.max(np.max(f_clean[i])), color="black")
+            a1.axvline(dev_length/6, 0, np.max(np.max(f_clean_df_clean.iloc[:,i])), color="black")
             a1.set_title("GFP intensities, interpolated and relative to hatch", fontsize=10)
             a1.set_xlabel("Time after hatch (h)", size=10)
-            a1.set_ylim(np.min(np.min(f_clean)), np.max(np.max(f_clean)))
+            a1.set_ylim(np.min(np.min(f_clean_df_clean)), np.max(np.max(f_clean_df_clean)))
             a1.set_xlim(0, len(gfpdata)/6)
             a1.set_ylabel("GFP intensities (a.u.)", size=10)        
             a1.set_facecolor("None")
