@@ -196,8 +196,11 @@ if st.sidebar.checkbox("start lethargus analysis"):
     for i in np.arange(0, len(gfpdata.columns)):
         f_clean.append(f.iloc[int(intmolts[0,0,i]):int(intmolts[0,0,i]+dev_length),i].values)
 
-    
-    valid_worms = np.repeat(1,len(gfpdata.columns))
+    @st.cache(allow_output_mutation=True)
+    def set_up_valid_worms():
+        valid_worms_1 = np.repeat(1,len(gfpdata.columns))
+        return valid_worms_1
+    valid_worms = set_up_valid_worms()
 
     if st.sidebar.checkbox("filter out bad worms"):
         worm_to_check = st.sidebar.number_input("worm number", 1 , step = 1) - 1
@@ -224,8 +227,9 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
     f_clean_df = pd.DataFrame(f_clean).T
     f_clean_df_clean = f_clean_df.loc[:,valid_worms==True]
-    intmolts_clean = intmolts[:,:,valid_worms]
-    molts_clean = molts[:,:,valid_worms]
+    intmolts_clean = intmolts[:,:,valid_worms==True]
+    molts_clean = molts[:,:,valid_worms==True]
+    gfpdata_clean = gfpdata.loc[:,valid_worms == True]
     #plot f_clean (interpolated data) to investigate molts and developmental length in 
     #more detail
     st.sidebar.title("Plot developmental durations")
@@ -239,11 +243,11 @@ if st.sidebar.checkbox("start lethargus analysis"):
         
         for i in np.arange(0,len(f_clean_df_clean.columns)): 
             a1.plot(np.arange(0,dev_length)/6, f_clean_df_clean.iloc[:,i], color="black", linewidth=linewidth, alpha = 0.3)
-
             for n in np.arange(0,4):
                 molt_tp = np.arange((molts_clean[0,n,i])-int(intmolts_clean[0,0,i]),(molts_clean[1,n,i]+1-int(intmolts_clean[0,0,i])))
                 gfp_dMolt = f_clean_df_clean.iloc[:,i][int(molts_clean[0,n,i])-int(intmolts_clean[0,0,i]):int(molts_clean[1,n,i]+1)-int(intmolts_clean[0,0,i])]
                 a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth+1, alpha = 1)        
+                #print(molt_tp)
             a1.axvline(dev_length/6, 0, np.max(np.max(f_clean_df_clean.iloc[:,i])), color="black")
             a1.set_title("GFP intensities, interpolated and relative to hatch", fontsize=10)
             a1.set_xlabel("Time after hatch (h)", size=10)
@@ -268,40 +272,40 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
     #Larval stage durations
     L1_int_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        L1_int_wt.append((intmolts[1,0,i] - intmolts[0,0,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        L1_int_wt.append((intmolts_clean[1,0,i] - intmolts_clean[0,0,i])/6)
 
     L2_int_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        L2_int_wt.append((intmolts[1,1,i] - intmolts[0,1,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        L2_int_wt.append((intmolts_clean[1,1,i] - intmolts_clean[0,1,i])/6)
 
     L3_int_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        L3_int_wt.append((intmolts[1,2,i] - intmolts[0,2,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        L3_int_wt.append((intmolts_clean[1,2,i] - intmolts_clean[0,2,i])/6)
 
     L4_int_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        L4_int_wt.append((intmolts[1,3,i] - intmolts[0,3,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        L4_int_wt.append((intmolts_clean[1,3,i] - intmolts_clean[0,3,i])/6)
 
     intermolt_dur = pd.DataFrame([L1_int_wt, L2_int_wt, L3_int_wt, L4_int_wt], index = ["IM1", "IM2", "IM3", "IM4"]).T.melt()
 
     #molt durations
 
     M1_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        M1_wt.append((intmolts[0,1,i] - intmolts[1,0,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        M1_wt.append((intmolts_clean[0,1,i] - intmolts_clean[1,0,i])/6)
 
     M2_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        M2_wt.append((intmolts[0,2,i] - intmolts[1,1,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        M2_wt.append((intmolts_clean[0,2,i] - intmolts_clean[1,1,i])/6)
 
     M3_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        M3_wt.append((intmolts[0,3,i] - intmolts[1,2,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        M3_wt.append((intmolts_clean[0,3,i] - intmolts_clean[1,2,i])/6)
 
     M4_wt = []
-    for i in np.arange(0,len(leth.columns)-1):  
-        M4_wt.append((intmolts[0,4,i] - intmolts[1,3,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):  
+        M4_wt.append((intmolts_clean[0,4,i] - intmolts_clean[1,3,i])/6)
 
     molt_dur = pd.DataFrame([M1_wt, M2_wt, M3_wt, M4_wt], index = ["M1", "M2", "M3", "M4"]).T.melt()
 
@@ -312,11 +316,11 @@ if st.sidebar.checkbox("start lethargus analysis"):
     L3_dur_wt = []
     L4_dur_wt = []
 
-    for i in np.arange(0,len(leth.columns)-1):
-        L1_dur_wt.append((intmolts[0,1,i]- intmolts[0,0,i])/6)
-        L2_dur_wt.append((intmolts[0,2,i] - intmolts[0,1,i])/6)
-        L3_dur_wt.append((intmolts[0,3,i] - intmolts[0,2,i])/6)
-        L4_dur_wt.append((intmolts[0,4,i] - intmolts[0,3,i])/6)
+    for i in np.arange(0,len(leth_clean.columns)-1):
+        L1_dur_wt.append((intmolts_clean[0,1,i]- intmolts_clean[0,0,i])/6)
+        L2_dur_wt.append((intmolts_clean[0,2,i] - intmolts_clean[0,1,i])/6)
+        L3_dur_wt.append((intmolts_clean[0,3,i] - intmolts_clean[0,2,i])/6)
+        L4_dur_wt.append((intmolts_clean[0,4,i] - intmolts_clean[0,3,i])/6)
 
     larval_stage_dur = pd.DataFrame([L1_dur_wt, L2_dur_wt, L3_dur_wt, L4_dur_wt], index=["L1", "L2", "L3", "L4"]).T.melt()
 
@@ -362,24 +366,24 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         
     #Scale the data to each individual larval stage according to mean length of larval stage
-    mean_L1 = int(np.round(np.mean(intmolts[0,1,:] - intmolts[0,0,:])))
-    mean_L2 = int(np.round(np.mean(intmolts[0,2,:] - intmolts[0,1,:])))
-    mean_L3 = int(np.round(np.mean(intmolts[0,3,:] - intmolts[0,2,:])))
-    mean_L4 = int(np.round(np.mean(intmolts[0,4,:] - intmolts[0,3,:])))
+    mean_L1 = int(np.round(np.mean(intmolts_clean[0,1,:] - intmolts_clean[0,0,:])))
+    mean_L2 = int(np.round(np.mean(intmolts_clean[0,2,:] - intmolts_clean[0,1,:])))
+    mean_L3 = int(np.round(np.mean(intmolts_clean[0,3,:] - intmolts_clean[0,2,:])))
+    mean_L4 = int(np.round(np.mean(intmolts_clean[0,4,:] - intmolts_clean[0,3,:])))
         
-    scaled_L1 = np.zeros((mean_L1, len(gfpdata.columns)))
-    scaled_L2 = np.zeros((mean_L2, len(gfpdata.columns)))
-    scaled_L3 = np.zeros((mean_L3, len(gfpdata.columns)))
-    scaled_L4 = np.zeros((mean_L4, len(gfpdata.columns)))
+    scaled_L1 = np.zeros((mean_L1, len(gfpdata_clean.columns)))
+    scaled_L2 = np.zeros((mean_L2, len(gfpdata_clean.columns)))
+    scaled_L3 = np.zeros((mean_L3, len(gfpdata_clean.columns)))
+    scaled_L4 = np.zeros((mean_L4, len(gfpdata_clean.columns)))
 
-    for i in np.arange(0,len(gfpdata.columns)):
-        scaled_L1[:,i] = np.interp(np.arange(0,mean_L1), np.arange(0,(intmolts[0,1,i] - intmolts[0,0,i])), gfpdata.iloc[int(intmolts[0,0,i]):int(intmolts[0,1,i]),i])
-        scaled_L2[:,i] = np.interp(np.arange(0,mean_L2), np.arange(0,(intmolts[0,2,i] - intmolts[0,1,i])), gfpdata.iloc[int(intmolts[0,1,i]):int(intmolts[0,2,i]),i])
-        scaled_L3[:,i] = np.interp(np.arange(0,mean_L3), np.arange(0,(intmolts[0,3,i] - intmolts[0,2,i])), gfpdata.iloc[int(intmolts[0,2,i]):int(intmolts[0,3,i]),i])
-        scaled_L4[:,i] = np.interp(np.arange(0,mean_L4), np.arange(0,(intmolts[0,4,i] - intmolts[0,3,i])), gfpdata.iloc[int(intmolts[0,3,i]):int(intmolts[0,4,i]),i])
+    for i in np.arange(0,len(gfpdata_clean.columns)):
+        scaled_L1[:,i] = np.interp(np.arange(0,mean_L1), np.arange(0,(intmolts_clean[0,1,i] - intmolts_clean[0,0,i])), gfpdata_clean.iloc[int(intmolts_clean[0,0,i]):int(intmolts_clean[0,1,i]),i])
+        scaled_L2[:,i] = np.interp(np.arange(0,mean_L2), np.arange(0,(intmolts_clean[0,2,i] - intmolts_clean[0,1,i])), gfpdata_clean.iloc[int(intmolts_clean[0,1,i]):int(intmolts_clean[0,2,i]),i])
+        scaled_L3[:,i] = np.interp(np.arange(0,mean_L3), np.arange(0,(intmolts_clean[0,3,i] - intmolts_clean[0,2,i])), gfpdata_clean.iloc[int(intmolts_clean[0,2,i]):int(intmolts_clean[0,3,i]),i])
+        scaled_L4[:,i] = np.interp(np.arange(0,mean_L4), np.arange(0,(intmolts_clean[0,4,i] - intmolts_clean[0,3,i])), gfpdata_clean.iloc[int(intmolts_clean[0,3,i]):int(intmolts_clean[0,4,i]),i])
 
 
-    new_molt = molts[:,:,:]-intmolts[0,0:4,:]
+    new_molt = molts_clean[:,:,:]-intmolts_clean[0,0:4,:]
 
     new_molt_mean = np.zeros((4,2))
 
@@ -425,11 +429,11 @@ if st.sidebar.checkbox("start lethargus analysis"):
             lowcut = 1/14 #default 1/14 --> 14 hour period
             highcut = 1/5 #default 1/5 --> 5 hour period
 
-        data = f_clean
+        data = f_clean_df_clean
 
         y = []
-        for i in np.arange(0,len(f_clean)):
-            y.append(butter_bandpass_filter((data[i]-np.mean(data[i])), lowcut, highcut, fs, order=order))
+        for i in np.arange(0,len(f_clean_df_clean.columns)):
+            y.append(butter_bandpass_filter((data.iloc[:,i]-np.mean(data.iloc[:,i])), lowcut, highcut, fs, order=order))
 
         analytic_signal = []
         amplitude_envelope = []
@@ -438,7 +442,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
         inst_phase_deriv = []
         PeriodoverTime = []
         my_phase = []
-        for i in np.arange(0,len(f_clean)): 
+        for i in np.arange(0,len(f_clean_df_clean.columns)): 
             analytic_signal.append(hilbert(y[i]))
             amplitude_envelope.append(np.abs(analytic_signal[i]))
             instantaneous_phase.append(np.unwrap(np.angle(analytic_signal[i])))
@@ -448,7 +452,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
             my_phase.append(np.angle(analytic_signal[i]))
 
 
-        worm_names = leth.columns
+        worm_names = leth_clean.columns
 
         phase = pd.DataFrame(my_phase).T
         phase.columns = worm_names[1:]
@@ -458,15 +462,14 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         molt_entry_phase = []
         molt_exit_phase = []
-
-        for i in np.arange(0,len(gfpdata.columns)):
+#up to here with _clean data
+        for i in np.arange(0,len(gfpdata_clean.columns)):
             for n in np.arange(0,4):
             
-                entry_tp = int(intmolts[1,n,i] - intmolts[0,0,i])
-                exit_tp = int(intmolts[0,n+1,i] - intmolts[0,0,i])
+                entry_tp = int(intmolts_clean[1,n,i] - intmolts_clean[0,0,i])
+                exit_tp = int(intmolts_clean[0,n+1,i] - intmolts_clean[0,0,i])
                 molt_entry_phase.append(my_phase[i][entry_tp])
                 molt_exit_phase.append(my_phase[i][exit_tp])
-
         molt_entr_ph_L1 = []
         molt_entr_ph_L2 = []
         molt_entr_ph_L3 = []
@@ -477,7 +480,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
         molt_exit_ph_L3 = []
         molt_exit_ph_L4 = []
 
-        for i in np.arange(0,len(gfpdata.columns)):
+        for i in np.arange(0,len(gfpdata_clean.columns)):
             molt_entr_ph_L1.append(molt_entry_phase[4*i]) #select M1 molt entry phase, +np.pi because wavelets start at -pi (=0 degree) over 0 (=180degree) to pi (=360 degree)
             molt_entr_ph_L2.append(molt_entry_phase[4*i+1])
             molt_entr_ph_L3.append(molt_entry_phase[4*i+2])
@@ -487,6 +490,10 @@ if st.sidebar.checkbox("start lethargus analysis"):
             molt_exit_ph_L2.append(molt_exit_phase[4*i+1])
             molt_exit_ph_L3.append(molt_exit_phase[4*i+2])
             molt_exit_ph_L4.append(molt_exit_phase[4*i+3])
+
+
+
+    #correct (switch) phase 
 
         corr_molt_entr_ph_L1 = [] #the following code switched the phase in case some data points run over 2pi
         for i in np.arange(0,len(molt_entr_ph_L1)):
@@ -502,21 +509,61 @@ if st.sidebar.checkbox("start lethargus analysis"):
             else:
                 corr_molt_exit_ph_L1.append(molt_exit_ph_L1[i])
 
+        corr_molt_entr_ph_L2 = []
+        for i in np.arange(0,len(molt_entr_ph_L2)):
+            if np.sign(np.median(molt_entr_ph_L2)) != np.sign(molt_entr_ph_L2[i]):
+                corr_molt_entr_ph_L2.append(molt_entr_ph_L2[i]+2*np.pi)
+            else:
+                corr_molt_entr_ph_L2.append(molt_entr_ph_L2[i])
         
-        
+        corr_molt_exit_ph_L2 = []
+        for i in np.arange(0,len(molt_exit_ph_L2)):
+            if np.sign(np.median(molt_exit_ph_L2)) != np.sign(molt_exit_ph_L2[i]):
+                corr_molt_exit_ph_L2.append(molt_exit_ph_L2[i]+2*np.pi)
+            else:
+                corr_molt_exit_ph_L2.append(molt_exit_ph_L2[i])
 
+        corr_molt_entr_ph_L3 = [] #the following code switched the phase in case some data points run over 2pi
+        for i in np.arange(0,len(molt_entr_ph_L3)):
+            if np.sign(np.median(molt_entr_ph_L3)) != np.sign(molt_entr_ph_L3[i]):
+                corr_molt_entr_ph_L3.append(molt_entr_ph_L3[i]+2*np.pi) 
+            else:
+                corr_molt_entr_ph_L3.append(molt_entr_ph_L3[i])
+
+        corr_molt_exit_ph_L3 = []
+        for i in np.arange(0,len(molt_exit_ph_L3)):
+            if np.sign(np.median(molt_exit_ph_L3)) != np.sign(molt_exit_ph_L3[i]):
+                corr_molt_exit_ph_L3.append(molt_exit_ph_L3[i]+2*np.pi)
+            else:
+                corr_molt_exit_ph_L3.append(molt_exit_ph_L3[i])
+
+        corr_molt_entr_ph_L4 = []
+        for i in np.arange(0,len(molt_entr_ph_L4)):
+            if np.sign(np.median(molt_entr_ph_L4)) != np.sign(molt_entr_ph_L4[i]):
+                corr_molt_entr_ph_L4.append(molt_entr_ph_L4[i]+2*np.pi)
+            else:
+                corr_molt_entr_ph_L4.append(molt_entr_ph_L4[i])
+        
+        corr_molt_exit_ph_L4 = []
+        for i in np.arange(0,len(molt_exit_ph_L4)):
+            if np.sign(np.median(molt_exit_ph_L4)) != np.sign(molt_exit_ph_L4[i]):
+                corr_molt_exit_ph_L4.append(molt_exit_ph_L4[i]+2*np.pi)
+            else:
+                corr_molt_exit_ph_L4.append(molt_exit_ph_L4[i])
+        
+        
         leth_corr = []
         end = []
-        for i in np.arange(1,len(leth.columns)):
-            end.append(len(leth)-int(intmolts[0,0,i-1]))
+        for i in np.arange(1,len(leth_clean.columns)):
+            end.append(len(leth_clean)-int(intmolts_clean[0,0,i-1]))
         max_len = np.min(end)
 
-        for i in np.arange(1,len(leth.columns)):
-            leth_corr.append(leth.iloc[int(intmolts[0,0,i-1]):(int(intmolts[0,0,i-1])+max_len),i])
+        for i in np.arange(1,len(leth_clean.columns)):
+            leth_corr.append(leth_clean.iloc[int(intmolts_clean[0,0,i-1]):(int(intmolts_clean[0,0,i-1])+max_len),i])
 
         leth_new = np.asarray(leth_corr)
 
-        leth_new_sorted = leth_new[np.argsort(intmolts[1,0,:]-intmolts[0,0,:]),:]
+        leth_new_sorted = leth_new[np.argsort(intmolts_clean[1,0,:]-intmolts_clean[0,0,:]),:]
 
 
         period_L2 = []
@@ -527,13 +574,13 @@ if st.sidebar.checkbox("start lethargus analysis"):
         sem_L3 = []
         sem_L4 = []
 
-        for i in np.arange(0,len(gfpdata.columns)):
-                entry_tp_2 = int(intmolts[0,1,i] - intmolts[0,0,i])
-                exit_tp_2 = int(intmolts[0,2,i] - intmolts[0,0,i])
-                entry_tp_3 = int(intmolts[0,2,i] - intmolts[0,0,i])
-                exit_tp_3 = int(intmolts[0,3,i] - intmolts[0,0,i])
-                entry_tp_4 = int(intmolts[0,3,i] - intmolts[0,0,i])
-                exit_tp_4 = int(intmolts[0,4,i] - intmolts[0,0,i])
+        for i in np.arange(0,len(gfpdata_clean.columns)):
+                entry_tp_2 = int(intmolts_clean[0,1,i] - intmolts_clean[0,0,i])
+                exit_tp_2 = int(intmolts_clean[0,2,i] - intmolts_clean[0,0,i])
+                entry_tp_3 = int(intmolts_clean[0,2,i] - intmolts_clean[0,0,i])
+                exit_tp_3 = int(intmolts_clean[0,3,i] - intmolts_clean[0,0,i])
+                entry_tp_4 = int(intmolts_clean[0,3,i] - intmolts_clean[0,0,i])
+                exit_tp_4 = int(intmolts_clean[0,4,i] - intmolts_clean[0,0,i])
                 period_L2.append(np.nanmean(PeriodoverTime[i][entry_tp_2:exit_tp_2])/6)
                 period_L3.append(np.nanmean(PeriodoverTime[i][entry_tp_3:exit_tp_3])/6)
                 period_L4.append(np.nanmean(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
@@ -555,14 +602,11 @@ if st.sidebar.checkbox("start lethargus analysis"):
             prop_err_entry.append((2*np.pi)/per*IM)
 
 
-
-
-
-
-
-
-
         #plot 2
+        st.sidebar.subheader("adjust y-axis limits")
+
+        ylim_phase_min = st.sidebar.number_input("phase ylim minimum", -4, 4, -4)
+        ylim_phase_max = st.sidebar.number_input("phase ylim minimum", -4, 4, 4)
         cmap = cm.magma
         norm = Normalize(vmin=-3.2, vmax=3.2)
 
@@ -571,14 +615,14 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         a2 = f.add_subplot(121)
         size=0.3
-        for i in np.arange(0,len(gfpdata.columns)):
+        for i in np.arange(0,len(gfpdata_clean.columns)):
             sc = a2.scatter(np.arange(0,dev_length)/6, np.repeat(i, dev_length), color = cmap(norm(my_phase[i])), cmap = "magma", s=size)
             for n in np.arange(0,4):
-                molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
-                gfp_dMolt = gfpdata.iloc[np.arange((molts[0,n,i]),(molts[1,n,i]+1)),i]
+                molt_tp = np.arange((molts_clean[0,n,i])-int(intmolts_clean[0,0,i]),(molts_clean[1,n,i]+1-int(intmolts_clean[0,0,i])))
+                gfp_dMolt = gfpdata_clean.iloc[np.arange((molts_clean[0,n,i]),(molts_clean[1,n,i]+1)),i]
                 plt.scatter((molt_tp/6), np.repeat(i,len(molt_tp)), color = cmap(norm(my_phase[i][int(molt_tp[0]):int(molt_tp[-1]+1)])), s=size+3)        
         a2.set_xlim(0,dev_length/6)
-        #a2.set_ylim(np.min(np.min(gfpdata)), 1500)
+        #a2.set_ylim(np.min(np.min(gfpdata_clean)), 1500)
         a2.set_xlim(0, dev_length/6)
         a2.set_title("Phases of GFP intensities", fontsize=10)
         a2.set_xlabel("Time after hatch (h)", size=10)
@@ -591,28 +635,53 @@ if st.sidebar.checkbox("start lethargus analysis"):
         a2.xaxis.set_ticks_position('bottom')
 
 
+        if st.checkbox("flip phases (in case they are at boundary)"):
 
+            molt_ph_entry = pd.DataFrame([corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
+            molt_ph_entry["Molt"] = "entry"
+            
+            molt_ph_exit = pd.DataFrame([corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
+            molt_ph_exit["Molt"] = "exit"
 
-        molt_ph_entry = pd.DataFrame([corr_molt_entr_ph_L1,molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-        molt_ph_entry["Molt"] = "entry"
-        
-        molt_ph_exit = pd.DataFrame([corr_molt_exit_ph_L1,molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-        molt_ph_exit["Molt"] = "exit"
+            molt_phases = molt_ph_entry.append(molt_ph_exit)
+            
+            #plot
+            ax = f.add_subplot(122)
+            sns.boxplot(x = "variable", y = "value", data = molt_phases,
+            hue="Molt", palette = "Blues", ax = ax)
+            ax.set_ylabel("Phase (rad)")
+            ax.set_xlabel("molts_clean")
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.legend(frameon=False)
+            ax.set_ylim(ylim_phase_min, ylim_phase_max)
+            plt.tight_layout()
 
-        molt_phases = molt_ph_entry.append(molt_ph_exit)
-        
-        #plot
-        ax = f.add_subplot(122)
-        sns.boxplot(x = "variable", y = "value", data = molt_phases,
-        hue="Molt", palette = "Blues", ax = ax)
-        ax.set_ylabel("Phase (rad)")
-        ax.set_xlabel("Molts")
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.legend(frameon=False)
-        plt.tight_layout()
+            st.pyplot()
 
-        st.pyplot()
+        else:
+
+            molt_ph_entry = pd.DataFrame([molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
+            molt_ph_entry["Molt"] = "entry"
+            
+            molt_ph_exit = pd.DataFrame([molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
+            molt_ph_exit["Molt"] = "exit"
+
+            molt_phases = molt_ph_entry.append(molt_ph_exit)
+            
+            #plot
+            ax = f.add_subplot(122)
+            sns.boxplot(x = "variable", y = "value", data = molt_phases,
+            hue="Molt", palette = "Blues", ax = ax)
+            ax.set_ylabel("Phase (rad)")
+            ax.set_xlabel("molts_clean")
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.legend(frameon=False)
+            ax.set_ylim(ylim_phase_min, ylim_phase_max)
+            plt.tight_layout()
+
+            st.pyplot()
 
 
 
@@ -644,7 +713,6 @@ if st.sidebar.checkbox("start lethargus analysis"):
         #plot
 
         f = plt.figure(figsize=(8,3), dpi=150)
-        st.sidebar.subheader("adjust y-axis limits")
         y_lim_low_LS_and_PER = st.sidebar.number_input("y-axis lower limit of larval stage and period", 0,100, 0)
         y_lim_high_LS_and_PER = st.sidebar.number_input("y-axis upper limit of larval stage and period", 0,100, 17)
         
