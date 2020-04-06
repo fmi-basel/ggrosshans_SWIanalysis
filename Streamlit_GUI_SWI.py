@@ -18,25 +18,81 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
 
+#functions:
+
+#lethargus analysis
+@st.cache(suppress_st_warning=True)
+def lethargus_analysis(leth):
+
+    # Add a placeholder
+    latest_iteration = st.empty()
+    bar = st.progress(0)
+    intmolts = np.zeros((2,5,len(leth.columns)-1))
+    molts = np.zeros((2,4,len(leth.columns)-1))
+
+    for i in np.arange(1,len(leth.columns)):
+        tempintmolts = np.zeros((10,2))
+        toggle = 0
+        count = -1
+        for t in np.arange(1,len(leth)):
+
+            if leth.iloc[t,i] == 1 and toggle == 0:
+                toggle = 1
+                count = count+1
+                tempintmolts[count,0] = t
+        
+        
+            if leth.iloc[t,i] == 0 and toggle == 1:
+                toggle = 0
+                tempintmolts[count,1] = t-1
+                
+        tempintmolts[count,1] = t
+        lintermolts = pd.DataFrame(np.diff(tempintmolts, axis=1)+1)
+        
+        sorted_lintermolts = pd.DataFrame(lintermolts.sort_values([0], ascending = False))
+
+        if tempintmolts.shape[0] >4:
+            intmolts[0,0:5,i-1] = np.sort(np.take(tempintmolts[:,0],sorted_lintermolts.index.values[0:5]))
+            intmolts[1,0:5,i-1] = np.sort(np.take(tempintmolts[:,1],sorted_lintermolts.index.values[0:5]))
+
+        else:
+            intmolts[0,0:5,i-1] = np.nan
+            intmolts[1,0:5,i-1] = np.nan  
+        
+        
+        for ii in np.arange(0,4):
+            molts[0, ii, i-1] = intmolts[1,ii,i-1]+1
+            molts[1, ii, i-1] = intmolts[0,ii+1,i-1]-1
+
+        # Update the progress bar with each iteration.
+        latest_iteration.text(f'Worm number {i}')
+        bar.progress(int(np.round(100*i/(len(leth.columns)-1),0)))
+        time.sleep(0.1)
+    return intmolts, molts
+
+
+
+
+
+
 
 
 st.title(":microscope: :snake: :microscope: :snake: SWI Analyzer :snake: :microscope: :snake: :microscope:")
 
 st.sidebar.title("Import the data")
 
-
+#load leth
 if st.sidebar.checkbox("Load lethargus data"):
     try: 
         leth_filename = st.sidebar.text_input("location/filename to load for lethargus data:", "")
     except FileNotFoundError:
         st.error("Lethargus file does not exist")
-
-
 try:
     leth = pd.read_csv(leth_filename)
 except NameError:
     st.error("load the lethargus file first")
 
+#load gfp
 if st.sidebar.checkbox("Load GFP data"):
     try:
         gfp_filename = st.sidebar.text_input("location/filename to load for GFP data:", "")
@@ -74,81 +130,32 @@ if st.sidebar.checkbox("show GFP data"):
     st.dataframe(gfpdata)
 
 
+#run the lethargus analysis
+
 st.sidebar.title("Lethargus analysis")
 
 if st.sidebar.checkbox("start lethargus analysis"):
-    #definitions:
-    @st.cache(suppress_st_warning=True)
-    def lethargus_analysis(leth):
 
-        # Add a placeholder
-        latest_iteration = st.empty()
-        bar = st.progress(0)
-        intmolts = np.zeros((2,5,len(leth.columns)-1))
-        molts = np.zeros((2,4,len(leth.columns)-1))
-
-        for i in np.arange(1,len(leth.columns)):
-            tempintmolts = np.zeros((10,2))
-            toggle = 0
-            count = -1
-            for t in np.arange(1,len(leth)):
-
-                if leth.iloc[t,i] == 1 and toggle == 0:
-                    toggle = 1
-                    count = count+1
-                    tempintmolts[count,0] = t
-            
-            
-                if leth.iloc[t,i] == 0 and toggle == 1:
-                    toggle = 0
-                    tempintmolts[count,1] = t-1
-                    
-            tempintmolts[count,1] = t
-            lintermolts = pd.DataFrame(np.diff(tempintmolts, axis=1)+1)
-            
-            sorted_lintermolts = pd.DataFrame(lintermolts.sort_values([0], ascending = False))
-
-            if tempintmolts.shape[0] >4:
-                intmolts[0,0:5,i-1] = np.sort(np.take(tempintmolts[:,0],sorted_lintermolts.index.values[0:5]))
-                intmolts[1,0:5,i-1] = np.sort(np.take(tempintmolts[:,1],sorted_lintermolts.index.values[0:5]))
-
-            else:
-                intmolts[0,0:5,i-1] = np.nan
-                intmolts[1,0:5,i-1] = np.nan  
-            
-            
-            for ii in np.arange(0,4):
-                molts[0, ii, i-1] = intmolts[1,ii,i-1]+1
-                molts[1, ii, i-1] = intmolts[0,ii+1,i-1]-1
-
-            # Update the progress bar with each iteration.
-            latest_iteration.text(f'Worm number {i}')
-            bar.progress(int(np.round(100*i/(len(leth.columns)-1),0)))
-            time.sleep(0.1)
-        return intmolts, molts
-    
-
-    #run the analysis
     intmolts, molts = lethargus_analysis(leth)
     st.success("Lethargus analysis successful!")
-
 
 
     st.sidebar.subheader("choose developmental length (in time points) for GFP analysis")
     dev_length = st.sidebar.number_input("", 0, 360 - int(np.max(intmolts[0,0,:])), 231)
 
 
+if st.sidebar.checkbox("plot GFP data with molts"):
 
+    st.subheader("Raw GFP data with molts in red")
+    st.write("This will be a nice description for the plot")
 
+    #adjusted gfp data
     gfp_adj = []
     for i in np.arange(0,len(gfpdata.columns)): 
         gfp_adj.append(gfpdata.iloc[(int(intmolts[0,0,i])):(int(intmolts[0,0,i])+dev_length),i])
     gfp_adj = np.asarray(gfp_adj)
 
-
-    st.subheader("Raw GFP data with molts in red")
-    st.write("This will be a nice description for the plot")
-
+    #plot
     f = plt.figure(figsize=(8,4), dpi=150)
 
     a1 = f.add_subplot(111)
@@ -186,26 +193,33 @@ if st.sidebar.checkbox("start lethargus analysis"):
         st.pyplot()
 
 
-
+    #######run GFP analysis
 
     # calculations (can be improved with dataframes etc)
-    for i in np.arange(0,len(gfpdata.columns)):
-        f = gfpdata.interpolate(method = 'linear', axis =0, limit = 60, limit_direction = 'backward')
+    @st.cache()
+    def interpolate_gfp(gfpdata):
+        for i in np.arange(0,len(gfpdata.columns)):
+            f = gfpdata.interpolate(method = 'linear', axis =0, limit = 60, limit_direction = 'backward')
 
-    f_clean = []
-    for i in np.arange(0, len(gfpdata.columns)):
-        f_clean.append(f.iloc[int(intmolts[0,0,i]):int(intmolts[0,0,i]+dev_length),i].values)
+        f_clean = []
+        for i in np.arange(0, len(gfpdata.columns)):
+            f_clean.append(f.iloc[int(intmolts[0,0,i]):int(intmolts[0,0,i]+dev_length),i].values)
+        return f_clean
+    
+    f_clean = interpolate_gfp(gfpdata)
 
+    # select valid worms
     @st.cache(allow_output_mutation=True)
     def set_up_valid_worms():
         valid_worms_1 = np.repeat(1,len(gfpdata.columns))
         return valid_worms_1
+
     valid_worms = set_up_valid_worms()
 
     if st.sidebar.checkbox("filter out bad worms"):
         worm_to_check = st.sidebar.number_input("worm number", 1 , step = 1) - 1
         
-        
+        #plot individual worm in sidebar
         fig, ax = plt.subplots(1,1)
         ax.plot(np.arange(0,dev_length)/6, f_clean[worm_to_check], color="black", linewidth=linewidth, alpha = 0.8)
 
@@ -220,8 +234,8 @@ if st.sidebar.checkbox("start lethargus analysis"):
         evaluated = st.sidebar.checkbox("valid worm", value = True)
     valid_worms[worm_to_check] = evaluated
 
+    
     #filter gfpdata and lethargus for valid samples
-
     leth_clean = leth.iloc[:,1:].loc[:,valid_worms==True]
     leth_clean.insert(loc=0, column='Timepoint', value=leth["Timepoint"])
 
@@ -230,11 +244,10 @@ if st.sidebar.checkbox("start lethargus analysis"):
     intmolts_clean = intmolts[:,:,valid_worms==True]
     molts_clean = molts[:,:,valid_worms==True]
     gfpdata_clean = gfpdata.loc[:,valid_worms == True]
+    
     #plot f_clean (interpolated data) to investigate molts and developmental length in 
     #more detail
-    st.sidebar.title("Plot developmental durations")
     if st.sidebar.checkbox("highlight molt times in comparison to developmental length"):
-
 
         f = plt.figure(figsize=(8,4), dpi=150)
 
@@ -268,9 +281,13 @@ if st.sidebar.checkbox("start lethargus analysis"):
         else:
             st.pyplot()
 
-
+    
+    st.sidebar.title("Plot developmental durations")
 
     #Larval stage durations
+    #@st.cache()
+    #def calculate_durations(leth_clean, intmolts_clean, molts_clean):
+
     L1_int_wt = []
     for i in np.arange(0,len(leth_clean.columns)-1):  
         L1_int_wt.append((intmolts_clean[1,0,i] - intmolts_clean[0,0,i])/6)
@@ -287,7 +304,6 @@ if st.sidebar.checkbox("start lethargus analysis"):
     for i in np.arange(0,len(leth_clean.columns)-1):  
         L4_int_wt.append((intmolts_clean[1,3,i] - intmolts_clean[0,3,i])/6)
 
-    intermolt_dur = pd.DataFrame([L1_int_wt, L2_int_wt, L3_int_wt, L4_int_wt], index = ["IM1", "IM2", "IM3", "IM4"]).T.melt()
 
     #molt durations
 
@@ -307,7 +323,6 @@ if st.sidebar.checkbox("start lethargus analysis"):
     for i in np.arange(0,len(leth_clean.columns)-1):  
         M4_wt.append((intmolts_clean[0,4,i] - intmolts_clean[1,3,i])/6)
 
-    molt_dur = pd.DataFrame([M1_wt, M2_wt, M3_wt, M4_wt], index = ["M1", "M2", "M3", "M4"]).T.melt()
 
 
     #larval stage durations
@@ -323,8 +338,13 @@ if st.sidebar.checkbox("start lethargus analysis"):
         L4_dur_wt.append((intmolts_clean[0,4,i] - intmolts_clean[0,3,i])/6)
 
     larval_stage_dur = pd.DataFrame([L1_dur_wt, L2_dur_wt, L3_dur_wt, L4_dur_wt], index=["L1", "L2", "L3", "L4"]).T.melt()
+    molt_dur = pd.DataFrame([M1_wt, M2_wt, M3_wt, M4_wt], index = ["M1", "M2", "M3", "M4"]).T.melt()
+    intermolt_dur = pd.DataFrame([L1_int_wt, L2_int_wt, L3_int_wt, L4_int_wt], index = ["IM1", "IM2", "IM3", "IM4"]).T.melt()
 
-
+    #return larval_stage_dur, molt_dur, intermolt_dur
+    
+    #larval_stage_dur, molt_dur, intermolt_dur = calculate_durations(leth_clean, intmolts_clean, molts_clean)
+    
 
     if st.sidebar.checkbox("plot molt, intermolt and larval stage duration"):
         st.subheader("Molt, Intermolt and Larval stage durations in hours")
@@ -462,7 +482,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
         molt_entry_phase = []
         molt_exit_phase = []
-#up to here with _clean data
+
         for i in np.arange(0,len(gfpdata_clean.columns)):
             for n in np.arange(0,4):
             
@@ -739,13 +759,22 @@ if st.sidebar.checkbox("start lethargus analysis"):
 
     st.sidebar.title("export results")
     if st.sidebar.checkbox("Save results in following directory"):
+        
+        params_hilbert = pd.DataFrame({"sample frequency (tp)": fs, 
+                                        "lower period limit (h)": 1/highcut,
+                                        "upper period limit (h)": 1/lowcut}, index = ["value"]).T
+
         save_dir_data = st.sidebar.text_input("add location", "")
         phase.to_csv(save_dir_data + "phase.csv")
-        #write larval stage durations per worm
+        larval_stage_dur.to_csv(save_dir_data + "Larval_stage_durations.csv") 
+        molt_dur.to_csv(save_dir_data + "Molt_durations.csv")
+        intermolt_dur.to_csv(save_dir_data + "Intermolt_durations.csv")
+        params_hilbert.to_csv(save_dir_data + "parameters_used_for_hilbert_analysis.csv")
         #write molting time points per worm
         #write phases at molt entry / exit per worm
         #write error prop data
-        #write out parameters used for hilbert
+
+
 
 
 
