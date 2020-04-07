@@ -13,10 +13,11 @@ import streamlit as st
 import time
 from bokeh.plotting import figure, output_file, show
 import matplotlib
+import io
+from PIL import Image
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
-
 
 #functions:
 
@@ -72,49 +73,35 @@ def lethargus_analysis(leth):
 
 
 
-
-
-
-
+image = Image.open('C:/Users/hausyann/source/repos/ggrosshans_SWIanalysis/SWI_chambers_OP50_202020215.png')
+st.image(image, caption='', use_column_width=True)
 
 st.title(":microscope: :snake: :microscope: :snake: SWI Analyzer :snake: :microscope: :snake: :microscope:")
 
+
+
+if st.sidebar.checkbox("Show useful information on how to work with this tool"):
+    str_1 = "This tool is designed to analyze single worm imaging data. It relies on lethargus data in the format of a csv file where the columns indicate the individual worms and the rows represent time points. "
+    str_2 = "The lethargus data is usually generated manually by checking whether the worm pumps (=1) or not (=0) at each time point. "
+    str_3 = "The GFP data should be in the tidy format, where Timepoints are in the first column (Frame), worms in the second (Position) and GFP intensity in the third column (Intensity_BGsub). "
+    str_4 = "The tool is structured in an interactive way through the sidebar. The idea is to go through the steps from top to bottom by first loading in the raw data and then performing the lethargus analysis. "
+    str_5 = "After the lethargus analysis the raw GFP data is plotted with the lethargus times in red. It is then possible to clean the data from worms that did not survive the assay or escape during the imaging. "
+    str_6 = "All further calculations and plots will be done using the cleaned data. Finally, it is possible to save the figures as pdf or png and the results in csv format to a desired location."
+    st.info(str_1 + str_2 + str_3 + str_4 + str_5 + str_6)
+
+
+#Load the data
 st.sidebar.title("Import the data")
 
-#load leth
-if st.sidebar.checkbox("Load lethargus data"):
-    try: 
-        leth_filename = st.sidebar.text_input("location/filename to load for lethargus data:", "")
-    except FileNotFoundError:
-        st.error("Lethargus file does not exist")
-try:
-    leth = pd.read_csv(leth_filename)
-except NameError:
-    st.error("load the lethargus file first")
-
-#load gfp
-if st.sidebar.checkbox("Load GFP data"):
-    try:
-        gfp_filename = st.sidebar.text_input("location/filename to load for GFP data:", "")
-    except FileNotFoundError:
-        st.error("GFP file does not exist")
-try:
-    gfpdata_original = pd.read_csv(gfp_filename)
-    #pivot gfpdata
-    gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")        
-
-except NameError:
-    st.error("load the GFP file first")
+uploaded_file_leth = st.sidebar.file_uploader("Choose file for lethargus data", type="csv")
+if uploaded_file_leth is not None:
+    leth = pd.read_csv(uploaded_file_leth)
 
 
-
-
-uploaded_file = st.file_uploader("Choose files for lethargus data", type="csv")
-if uploaded_file is not None:
-    st.subheader(uploaded_file)
-    #data = pd.read_csv(uploaded_file)
-    #st.subheader(data.columns())
-
+uploaded_file_GFP = st.sidebar.file_uploader("Choose file for GFP data", type="csv")
+if uploaded_file_GFP is not None:
+    gfpdata_original = pd.read_csv(uploaded_file_GFP)
+    gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
 #leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
 #gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
@@ -122,10 +109,12 @@ if uploaded_file is not None:
 st.sidebar.title("Display raw data")
 
 if st.sidebar.checkbox("show lethargus data"):
+    st.header("Raw data input")
     st.subheader("Lethargus data:")
     st.dataframe(leth)
 
 if st.sidebar.checkbox("show GFP data"):
+    st.header("Raw data input")
     st.subheader("GFP data:")
     st.dataframe(gfpdata)
 
@@ -143,7 +132,7 @@ if st.sidebar.checkbox("start lethargus analysis"):
     st.sidebar.subheader("choose developmental length (in time points) for GFP analysis")
     dev_length = st.sidebar.number_input("", 0, 360 - int(np.max(intmolts[0,0,:])), 231)
 
-
+st.sidebar.title("Raw data plotting")
 if st.sidebar.checkbox("plot GFP data with molts"):
 
     st.subheader("Raw GFP data with molts in red")
@@ -247,33 +236,43 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     
     #plot f_clean (interpolated data) to investigate molts and developmental length in 
     #more detail
-    if st.sidebar.checkbox("highlight molt times in comparison to developmental length"):
+    if st.sidebar.checkbox("Cleaned data: highlight molt times in comparison to developmental length"):
+        st.subheader("Cleaned GFP data with molts")
+
+        alpha_gfp = st.sidebar.slider("transparency of single worm GFP", 0,100,5)
+        alpha_molt = st.sidebar.slider("transparency of molts", 0,100,5)
+        alpha_mean = st.sidebar.slider("transparency of mean", 0,100,5)
+        alpha_std = st.sidebar.slider("transparency of standard deviation", 0,100,5)
 
         f = plt.figure(figsize=(8,4), dpi=150)
 
         a1 = f.add_subplot(111)
         linewidth=0.3
+        a1.plot(np.arange(0,dev_length)/6, f_clean_df_clean.mean(axis=1), color = "blue", alpha = alpha_mean/100)
+        a1.fill_between(np.arange(0,dev_length)/6, f_clean_df_clean.mean(axis=1)-f_clean_df_clean.std(axis=1), f_clean_df_clean.mean(axis=1)+f_clean_df_clean.std(axis=1), color="royalblue", alpha=(alpha_std/100))
         
         for i in np.arange(0,len(f_clean_df_clean.columns)): 
-            a1.plot(np.arange(0,dev_length)/6, f_clean_df_clean.iloc[:,i], color="black", linewidth=linewidth, alpha = 0.3)
+            a1.plot(np.arange(0,dev_length)/6, f_clean_df_clean.iloc[:,i], color="black", linewidth=linewidth, alpha = alpha_gfp/100)
             for n in np.arange(0,4):
                 molt_tp = np.arange((molts_clean[0,n,i])-int(intmolts_clean[0,0,i]),(molts_clean[1,n,i]+1-int(intmolts_clean[0,0,i])))
                 gfp_dMolt = f_clean_df_clean.iloc[:,i][int(molts_clean[0,n,i])-int(intmolts_clean[0,0,i]):int(molts_clean[1,n,i]+1)-int(intmolts_clean[0,0,i])]
-                a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth+1, alpha = 1)        
+                a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth+1, alpha = alpha_molt/100)        
                 #print(molt_tp)
             a1.axvline(dev_length/6, 0, np.max(np.max(f_clean_df_clean.iloc[:,i])), color="black")
             a1.set_title("GFP intensities, interpolated and relative to hatch", fontsize=10)
-            a1.set_xlabel("Time after hatch (h)", size=10)
+            a1.set_xlabel("Time after hatch (h)", size=labelsize)
             a1.set_ylim(np.min(np.min(f_clean_df_clean)), np.max(np.max(f_clean_df_clean)))
             a1.set_xlim(0, len(gfpdata)/6)
-            a1.set_ylabel("GFP intensities (a.u.)", size=10)        
+            a1.set_ylabel("GFP intensities (a.u.)", size=labelsize)        
             a1.set_facecolor("None")
-            a1.tick_params(axis='both', which='major', labelsize=7)
+            a1.tick_params(axis='both', which='major', labelsize=labelsize)
             a1.spines['right'].set_visible(False)
             a1.spines['top'].set_visible(False)
             a1.yaxis.set_ticks_position('left')
             a1.xaxis.set_ticks_position('bottom')
         plt.tight_layout()
+
+        
         if st.checkbox("click for saving figure 2"):
             save_fig2 = str(st.text_input("location/filename to save the figure:", ""))
             plt.savefig(save_fig2)
