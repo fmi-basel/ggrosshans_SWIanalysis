@@ -14,6 +14,7 @@ import time
 from bokeh.plotting import figure, output_file, show
 import matplotlib
 import io
+import os
 from PIL import Image
 
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -73,7 +74,7 @@ def lethargus_analysis(leth):
 
 
 
-image = Image.open('C:/Users/hausyann/source/repos/ggrosshans_SWIanalysis/SWI_chambers_OP50_202020215.png')
+image = Image.open(os.path.dirname(__file__) + "/SWI_chambers_OP50_202020215.png")
 st.image(image, caption='', use_column_width=True)
 
 st.title(":microscope: :snake: :microscope: :snake: SWI Analyzer :snake: :microscope: :snake: :microscope:")
