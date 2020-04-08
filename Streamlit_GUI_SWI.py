@@ -161,7 +161,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         for n in np.arange(0,4):
             molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
             gfp_dMolt = gfpdata.iloc[np.arange((molts[0,n,i]),(molts[1,n,i]+1)),i]
-            p.line((molt_tp/6), gfp_dMolt, line_color = "red", line_width = 2, alpha = 0.3)        
+            p.line((molt_tp/6), gfp_dMolt, line_color = "red", legend = "molt", line_width = 2, alpha = 0.3)        
             p.xaxis.major_label_text_font_size = "15pt"
             p.xaxis.axis_label_text_font_size = "15pt"
             p.yaxis.major_label_text_font_size = "15pt"
