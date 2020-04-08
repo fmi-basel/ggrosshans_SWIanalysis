@@ -16,10 +16,15 @@ import matplotlib
 import io
 import os
 from PIL import Image
+from bokeh.plotting import figure
+
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
+linewidth = 15
+linewidth_sidebar = 2
+labelsize = 15
 #functions:
 
 #lethargus analysis
@@ -80,7 +85,6 @@ st.image(image, caption='', use_column_width=True)
 st.title(":microscope: :snake: :microscope: :snake: SWI Analyzer :snake: :microscope: :snake: :microscope:")
 
 
-
 if st.sidebar.checkbox("Show useful information on how to work with this tool"):
     str_1 = "This tool is designed to analyze single worm imaging data. It relies on lethargus data in the format of a csv file where the columns indicate the individual worms and the rows represent time points. "
     str_2 = "The lethargus data is usually generated manually by checking whether the worm pumps (=1) or not (=0) at each time point. "
@@ -97,15 +101,16 @@ st.sidebar.title("Import the data")
 uploaded_file_leth = st.sidebar.file_uploader("Choose file for lethargus data", type="csv")
 if uploaded_file_leth is not None:
     leth = pd.read_csv(uploaded_file_leth)
-
+    st.write(leth)
 
 uploaded_file_GFP = st.sidebar.file_uploader("Choose file for GFP data", type="csv")
 if uploaded_file_GFP is not None:
     gfpdata_original = pd.read_csv(uploaded_file_GFP)
     gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
-#leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
-#gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
+leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
+gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
+gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
 st.sidebar.title("Display raw data")
 
@@ -146,43 +151,24 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     gfp_adj = np.asarray(gfp_adj)
 
     #plot
-    f = plt.figure(figsize=(8,4), dpi=150)
-
-    a1 = f.add_subplot(111)
-    linewidth=0.3
-    labelsize = 15
-
+    p = figure(
+    title='Raw GFP data with molts in red',
+    x_axis_label='Time of larval development (h)',
+    y_axis_label='GFP intensities (a.u.)')
     for i in np.arange(0,len(gfpdata.columns)): 
         gfp_data_adjusted = gfpdata.iloc[(int(intmolts[0,0,i])):(int(intmolts[0,0,i])+dev_length),i]
-        a1.plot(np.arange(0,dev_length)/6, gfp_data_adjusted, color="black", linewidth=linewidth, alpha = 0.3)
-
+        p.line(np.arange(0,dev_length)/6, gfp_data_adjusted, legend='Single worm GFP trace', line_width=2, line_color="black", line_alpha = 0.4)
         for n in np.arange(0,4):
             molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
             gfp_dMolt = gfpdata.iloc[np.arange((molts[0,n,i]),(molts[1,n,i]+1)),i]
-            a1.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth, alpha = 0.3)        
-        a1.axvline(dev_length/6, 0, np.max(np.max(gfpdata)), color="black")
-        a1.set_xlabel("Time after hatch (h)", size=labelsize)
-        a1.set_ylim(np.min(np.min(gfpdata)), np.max(np.max(gfpdata)))
-        a1.set_xlim(0, len(gfpdata)/6)
-        a1.set_ylabel("GFP intensities (a.u.)", size=labelsize)        
-        a1.set_facecolor("None")
-        a1.tick_params(axis='both', which='major', labelsize=labelsize)
-        a1.spines['right'].set_visible(False)
-        a1.spines['top'].set_visible(False)
-        a1.yaxis.set_ticks_position('left')
-        a1.xaxis.set_ticks_position('bottom')
-    a1.plot(np.arange(0,dev_length)/6, np.nanmean(gfp_adj, axis=0))
-    a1.fill_between(np.arange(0,dev_length)/6, np.nanmean(gfp_adj, axis=0)-np.nanstd(gfp_adj, axis=0), np.nanmean(gfp_adj, axis=0)+np.nanstd(gfp_adj, axis=0), color="royalblue", alpha=0.4)
-    plt.tight_layout()
+            p.line((molt_tp/6), gfp_dMolt, line_color = "red", line_width = 2, alpha = 0.3)        
+            p.xaxis.major_label_text_font_size = "15pt"
+            p.xaxis.axis_label_text_font_size = "15pt"
+            p.yaxis.major_label_text_font_size = "15pt"
+            p.yaxis.axis_label_text_font_size = "15pt"
+    st.bokeh_chart(p, use_container_width=True)
+
     
-    if st.checkbox("click for saving figure 1"):
-        save_fig1 = str(st.text_input("location/filename to save the figure:", ""))
-        plt.savefig(save_fig1)
-        st.pyplot()
-    else:
-        st.pyplot()
-
-
     #######run GFP analysis
 
     # calculations (can be improved with dataframes etc)
@@ -211,18 +197,19 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         
         #plot individual worm in sidebar
         fig, ax = plt.subplots(1,1)
-        ax.plot(np.arange(0,dev_length)/6, f_clean[worm_to_check], color="black", linewidth=linewidth, alpha = 0.8)
+        ax.plot(np.arange(0,dev_length)/6, f_clean[worm_to_check], color="black", linewidth=linewidth_sidebar, alpha = 0.8)
 
         for n in np.arange(0,4):
             molt_tp = np.arange((molts[0,n,worm_to_check])-int(intmolts[0,0,worm_to_check]),(molts[1,n,worm_to_check]+1-int(intmolts[0,0,worm_to_check])))
             gfp_dMolt = f_clean[worm_to_check][int(molts[0,n,worm_to_check])-int(intmolts[0,0,worm_to_check]):int(molts[1,n,worm_to_check]+1)-int(intmolts[0,0,worm_to_check])]
-            ax.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth+1, alpha = 1)        
+            ax.plot((molt_tp/6), gfp_dMolt, color = "red", linewidth = linewidth_sidebar+1, alpha = 1)        
         ax.axvline(dev_length/6, 0, np.max(np.max(f_clean[worm_to_check])), color="black")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         st.sidebar.pyplot()
         evaluated = st.sidebar.checkbox("valid worm", value = True)
     valid_worms[worm_to_check] = evaluated
+    
 
     
     #filter gfpdata and lethargus for valid samples
@@ -240,10 +227,11 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     if st.sidebar.checkbox("Cleaned data: highlight molt times in comparison to developmental length"):
         st.subheader("Cleaned GFP data with molts")
 
-        alpha_gfp = st.sidebar.slider("transparency of single worm GFP", 0,100,5)
-        alpha_molt = st.sidebar.slider("transparency of molts", 0,100,5)
-        alpha_mean = st.sidebar.slider("transparency of mean", 0,100,5)
-        alpha_std = st.sidebar.slider("transparency of standard deviation", 0,100,5)
+        alpha_gfp = st.sidebar.slider("transparency of single worm GFP", 0,100,40)
+        alpha_molt = st.sidebar.slider("transparency of molts", 0,100,40)
+        alpha_mean = st.sidebar.slider("transparency of mean", 0,100,90)
+        alpha_std = st.sidebar.slider("transparency of standard deviation", 0,100,20)
+        
 
         f = plt.figure(figsize=(8,4), dpi=150)
 
@@ -261,7 +249,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
                 #print(molt_tp)
             a1.axvline(dev_length/6, 0, np.max(np.max(f_clean_df_clean.iloc[:,i])), color="black")
             a1.set_title("GFP intensities, interpolated and relative to hatch", fontsize=10)
-            a1.set_xlabel("Time after hatch (h)", size=labelsize)
+            a1.set_xlabel("Time of larval development (h)", size=labelsize)
             a1.set_ylim(np.min(np.min(f_clean_df_clean)), np.max(np.max(f_clean_df_clean)))
             a1.set_xlim(0, len(gfpdata)/6)
             a1.set_ylabel("GFP intensities (a.u.)", size=labelsize)        
@@ -274,7 +262,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         plt.tight_layout()
 
         
-        if st.checkbox("click for saving figure 2"):
+        if st.checkbox("click for saving figure 1"):
             save_fig2 = str(st.text_input("location/filename to save the figure:", ""))
             plt.savefig(save_fig2)
             st.pyplot()
@@ -764,12 +752,15 @@ if st.sidebar.checkbox("plot GFP data with molts"):
                                         "lower period limit (h)": 1/highcut,
                                         "upper period limit (h)": 1/lowcut}, index = ["value"]).T
 
+        valid_worms_df = pd.DataFrame({"worm": gfpdata.columns, "valid": valid_worms})
+        
         save_dir_data = st.sidebar.text_input("add location", "")
-        phase.to_csv(save_dir_data + "phase.csv")
+        phase.to_csv(save_dir_data + "phase.csv") 
         larval_stage_dur.to_csv(save_dir_data + "Larval_stage_durations.csv") 
         molt_dur.to_csv(save_dir_data + "Molt_durations.csv")
         intermolt_dur.to_csv(save_dir_data + "Intermolt_durations.csv")
         params_hilbert.to_csv(save_dir_data + "parameters_used_for_hilbert_analysis.csv")
+        valid_worms_df.to_csv(save_dir_data + "valid_worms.csv")
         #write molting time points per worm
         #write phases at molt entry / exit per worm
         #write error prop data
