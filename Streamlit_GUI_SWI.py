@@ -78,7 +78,6 @@ def lethargus_analysis(leth):
     return intmolts, molts
 
 
-
 image = Image.open(os.path.dirname(__file__) + "/SWI_chambers_OP50_202020215.png")
 st.image(image, caption='', use_column_width=True)
 
@@ -209,7 +208,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         st.sidebar.pyplot()
         evaluated = st.sidebar.checkbox("valid worm", value = True)
     valid_worms[worm_to_check] = evaluated
-    
+    valid_worms_df = pd.DataFrame({"worm": gfpdata.columns, "valid": valid_worms})
 
     
     #filter gfpdata and lethargus for valid samples
@@ -226,6 +225,13 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     #more detail
     if st.sidebar.checkbox("Cleaned data: highlight molt times in comparison to developmental length"):
         st.subheader("Cleaned GFP data with molts")
+        
+        def color_zero_red(val):
+    
+            color = 'red' if val == 0 else 'black'
+            return 'color: %s' % color
+
+        st.dataframe(valid_worms_df.T.style.applymap(color_zero_red))
 
         alpha_gfp = st.sidebar.slider("transparency of single worm GFP", 0,100,40)
         alpha_molt = st.sidebar.slider("transparency of molts", 0,100,40)
@@ -632,10 +638,9 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         a2.set_xlim(0,dev_length/6)
         #a2.set_ylim(np.min(np.min(gfpdata_clean)), 1500)
         a2.set_xlim(0, dev_length/6)
-        a2.set_title("Phases of GFP intensities", fontsize=10)
         a2.set_xlabel("Time after hatch (h)", size=10)
         a2.set_ylabel("GFP intensity (a.u.)", size=10)
-        a2.tick_params(axis='both', which='major', labelsize=7)
+        a2.tick_params(axis='both', which='major', labelsize=10)
         a2.set_facecolor("None")
         a2.spines['right'].set_visible(False)
         a2.spines['top'].set_visible(False)
@@ -752,7 +757,6 @@ if st.sidebar.checkbox("plot GFP data with molts"):
                                         "lower period limit (h)": 1/highcut,
                                         "upper period limit (h)": 1/lowcut}, index = ["value"]).T
 
-        valid_worms_df = pd.DataFrame({"worm": gfpdata.columns, "valid": valid_worms})
         
         save_dir_data = st.sidebar.text_input("add location", "")
         phase.to_csv(save_dir_data + "phase.csv") 
