@@ -77,8 +77,12 @@ def lethargus_analysis(leth):
         time.sleep(0.1)
     return intmolts, molts
 
+@st.cache()
+def show_worm_image():
+    image = Image.open(os.path.dirname(__file__) + "/SWI_chambers_OP50_202020215.png")
+    return image
 
-image = Image.open(os.path.dirname(__file__) + "/SWI_chambers_OP50_202020215.png")
+image = show_worm_image()
 st.image(image, caption='', use_column_width=True)
 
 st.title(":microscope: :snake: :microscope: :snake: SWI Analyzer :snake: :microscope: :snake: :microscope:")
@@ -97,9 +101,13 @@ if st.sidebar.checkbox("Show useful information on how to work with this tool"):
 #Load the data
 st.sidebar.title("Import the data")
 
+@st.cache()
+def load_lethargus(uploaded_file_leth):
+    return pd.read_csv(uploaded_file_leth)
+
 uploaded_file_leth = st.sidebar.file_uploader("Choose file for lethargus data", type="csv")
 if uploaded_file_leth is not None:
-    leth = pd.read_csv(uploaded_file_leth)
+    leth = load_lethargus(uploaded_file_leth)
 
 uploaded_file_GFP = st.sidebar.file_uploader("Choose file for GFP data", type="csv")
 if uploaded_file_GFP is not None:
