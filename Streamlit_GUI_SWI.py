@@ -100,7 +100,6 @@ st.sidebar.title("Import the data")
 uploaded_file_leth = st.sidebar.file_uploader("Choose file for lethargus data", type="csv")
 if uploaded_file_leth is not None:
     leth = pd.read_csv(uploaded_file_leth)
-    st.write(leth)
 
 uploaded_file_GFP = st.sidebar.file_uploader("Choose file for GFP data", type="csv")
 if uploaded_file_GFP is not None:
