@@ -17,7 +17,7 @@ import io
 import os
 from PIL import Image
 from bokeh.plotting import figure
-
+from procswi import * #these are the custom functions for the single worm imaging analysis
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -25,57 +25,7 @@ matplotlib.rcParams['ps.fonttype'] = 42
 linewidth = 15
 linewidth_sidebar = 2
 labelsize = 15
-#functions:
 
-#lethargus analysis
-@st.cache(suppress_st_warning=True)
-def lethargus_analysis(leth):
-
-    # Add a placeholder
-    latest_iteration = st.empty()
-    bar = st.progress(0)
-    intmolts = np.zeros((2,5,len(leth.columns)-1))
-    molts = np.zeros((2,4,len(leth.columns)-1))
-
-    for i in np.arange(1,len(leth.columns)):
-        tempintmolts = np.zeros((10,2))
-        toggle = 0
-        count = -1
-        for t in np.arange(1,len(leth)):
-
-            if leth.iloc[t,i] == 1 and toggle == 0:
-                toggle = 1
-                count = count+1
-                tempintmolts[count,0] = t
-        
-        
-            if leth.iloc[t,i] == 0 and toggle == 1:
-                toggle = 0
-                tempintmolts[count,1] = t-1
-                
-        tempintmolts[count,1] = t
-        lintermolts = pd.DataFrame(np.diff(tempintmolts, axis=1)+1)
-        
-        sorted_lintermolts = pd.DataFrame(lintermolts.sort_values([0], ascending = False))
-
-        if tempintmolts.shape[0] >4:
-            intmolts[0,0:5,i-1] = np.sort(np.take(tempintmolts[:,0],sorted_lintermolts.index.values[0:5]))
-            intmolts[1,0:5,i-1] = np.sort(np.take(tempintmolts[:,1],sorted_lintermolts.index.values[0:5]))
-
-        else:
-            intmolts[0,0:5,i-1] = np.nan
-            intmolts[1,0:5,i-1] = np.nan  
-        
-        
-        for ii in np.arange(0,4):
-            molts[0, ii, i-1] = intmolts[1,ii,i-1]+1
-            molts[1, ii, i-1] = intmolts[0,ii+1,i-1]-1
-
-        # Update the progress bar with each iteration.
-        latest_iteration.text(f'Worm number {i}')
-        bar.progress(int(np.round(100*i/(len(leth.columns)-1),0)))
-        time.sleep(0.1)
-    return intmolts, molts
 
 @st.cache()
 def show_worm_image():
@@ -130,17 +80,16 @@ if st.sidebar.checkbox("show GFP data"):
     st.subheader("GFP data:")
     st.dataframe(gfpdata)
 
-
 #run the lethargus analysis
 
 st.sidebar.title("Lethargus analysis")
 
 if st.sidebar.checkbox("start lethargus analysis"):
-
     intmolts, molts = lethargus_analysis(leth)
     st.success("Lethargus analysis successful!")
 
 
+#choose developmental length
     st.sidebar.subheader("choose developmental length (in time points) for GFP analysis")
     dev_length = st.sidebar.number_input("", 0, 360 - int(np.max(intmolts[0,0,:])), 231)
 
@@ -150,11 +99,8 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     st.subheader("Raw GFP data with molts in red")
     st.write("This will be a nice description for the plot")
 
-    #adjusted gfp data
-    gfp_adj = []
-    for i in np.arange(0,len(gfpdata.columns)): 
-        gfp_adj.append(gfpdata.iloc[(int(intmolts[0,0,i])):(int(intmolts[0,0,i])+dev_length),i])
-    gfp_adj = np.asarray(gfp_adj)
+    #adjusted gfp data to start from hatch for every worm individually
+    gfp_adj = adjust_gfp(gfpdata, intmolts, dev_length)
 
     #plot
     p = figure(
@@ -162,8 +108,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     x_axis_label='Time of larval development (h)',
     y_axis_label='GFP intensities (a.u.)')
     for i in np.arange(0,len(gfpdata.columns)): 
-        gfp_data_adjusted = gfpdata.iloc[(int(intmolts[0,0,i])):(int(intmolts[0,0,i])+dev_length),i]
-        p.line(np.arange(0,dev_length)/6, gfp_data_adjusted, legend='Single worm GFP trace', line_width=2, line_color="black", line_alpha = 0.4)
+        p.line(np.arange(0,dev_length)/6, gfp_adj[i], legend='Single worm GFP trace', line_width=2, line_color="black", line_alpha = 0.4)
         for n in np.arange(0,4):
             molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
             gfp_dMolt = gfpdata.iloc[np.arange((molts[0,n,i]),(molts[1,n,i]+1)),i]
@@ -178,26 +123,12 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     #######run GFP analysis
 
     # calculations (can be improved with dataframes etc)
-    @st.cache()
-    def interpolate_gfp(gfpdata):
-        for i in np.arange(0,len(gfpdata.columns)):
-            f = gfpdata.interpolate(method = 'linear', axis =0, limit = 60, limit_direction = 'backward')
-
-        f_clean = []
-        for i in np.arange(0, len(gfpdata.columns)):
-            f_clean.append(f.iloc[int(intmolts[0,0,i]):int(intmolts[0,0,i]+dev_length),i].values)
-        return f_clean
-    
-    f_clean = interpolate_gfp(gfpdata)
+    # interpolate gfp data  
+    f_clean = interpolate_gfp(gfpdata, intmolts, dev_length)
 
     # select valid worms
-    @st.cache(allow_output_mutation=True)
-    def set_up_valid_worms():
-        valid_worms_1 = np.repeat(1,len(gfpdata.columns))
-        return valid_worms_1
-
-    valid_worms = set_up_valid_worms()
-
+    valid_worms = set_up_valid_worms(gfpdata)
+#up to here with functions
     if st.sidebar.checkbox("filter out bad worms"):
         worm_to_check = st.sidebar.number_input("worm number", 1 , step = 1) - 1
         
@@ -286,66 +217,8 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     st.sidebar.title("Plot developmental durations")
 
     #Larval stage durations
-    #@st.cache()
-    #def calculate_durations(leth_clean, intmolts_clean, molts_clean):
+    larval_stage_dur, molt_dur, intermolt_dur = calculate_durations(leth_clean, intmolts_clean, molts_clean)
 
-    L1_int_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        L1_int_wt.append((intmolts_clean[1,0,i] - intmolts_clean[0,0,i])/6)
-
-    L2_int_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        L2_int_wt.append((intmolts_clean[1,1,i] - intmolts_clean[0,1,i])/6)
-
-    L3_int_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        L3_int_wt.append((intmolts_clean[1,2,i] - intmolts_clean[0,2,i])/6)
-
-    L4_int_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        L4_int_wt.append((intmolts_clean[1,3,i] - intmolts_clean[0,3,i])/6)
-
-
-    #molt durations
-
-    M1_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        M1_wt.append((intmolts_clean[0,1,i] - intmolts_clean[1,0,i])/6)
-
-    M2_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        M2_wt.append((intmolts_clean[0,2,i] - intmolts_clean[1,1,i])/6)
-
-    M3_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        M3_wt.append((intmolts_clean[0,3,i] - intmolts_clean[1,2,i])/6)
-
-    M4_wt = []
-    for i in np.arange(0,len(leth_clean.columns)-1):  
-        M4_wt.append((intmolts_clean[0,4,i] - intmolts_clean[1,3,i])/6)
-
-
-
-    #larval stage durations
-    L1_dur_wt = []
-    L2_dur_wt = []
-    L3_dur_wt = []
-    L4_dur_wt = []
-
-    for i in np.arange(0,len(leth_clean.columns)-1):
-        L1_dur_wt.append((intmolts_clean[0,1,i]- intmolts_clean[0,0,i])/6)
-        L2_dur_wt.append((intmolts_clean[0,2,i] - intmolts_clean[0,1,i])/6)
-        L3_dur_wt.append((intmolts_clean[0,3,i] - intmolts_clean[0,2,i])/6)
-        L4_dur_wt.append((intmolts_clean[0,4,i] - intmolts_clean[0,3,i])/6)
-
-    larval_stage_dur = pd.DataFrame([L1_dur_wt, L2_dur_wt, L3_dur_wt, L4_dur_wt], index=["L1", "L2", "L3", "L4"]).T.melt()
-    molt_dur = pd.DataFrame([M1_wt, M2_wt, M3_wt, M4_wt], index = ["M1", "M2", "M3", "M4"]).T.melt()
-    intermolt_dur = pd.DataFrame([L1_int_wt, L2_int_wt, L3_int_wt, L4_int_wt], index = ["IM1", "IM2", "IM3", "IM4"]).T.melt()
-
-    #return larval_stage_dur, molt_dur, intermolt_dur
-    
-    #larval_stage_dur, molt_dur, intermolt_dur = calculate_durations(leth_clean, intmolts_clean, molts_clean)
-    
 
     if st.sidebar.checkbox("plot molt, intermolt and larval stage duration"):
         st.subheader("Molt, Intermolt and Larval stage durations in hours")
@@ -386,53 +259,10 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
 
         
-    #Scale the data to each individual larval stage according to mean length of larval stage
-    mean_L1 = int(np.round(np.mean(intmolts_clean[0,1,:] - intmolts_clean[0,0,:])))
-    mean_L2 = int(np.round(np.mean(intmolts_clean[0,2,:] - intmolts_clean[0,1,:])))
-    mean_L3 = int(np.round(np.mean(intmolts_clean[0,3,:] - intmolts_clean[0,2,:])))
-    mean_L4 = int(np.round(np.mean(intmolts_clean[0,4,:] - intmolts_clean[0,3,:])))
-        
-    scaled_L1 = np.zeros((mean_L1, len(gfpdata_clean.columns)))
-    scaled_L2 = np.zeros((mean_L2, len(gfpdata_clean.columns)))
-    scaled_L3 = np.zeros((mean_L3, len(gfpdata_clean.columns)))
-    scaled_L4 = np.zeros((mean_L4, len(gfpdata_clean.columns)))
-
-    for i in np.arange(0,len(gfpdata_clean.columns)):
-        scaled_L1[:,i] = np.interp(np.arange(0,mean_L1), np.arange(0,(intmolts_clean[0,1,i] - intmolts_clean[0,0,i])), gfpdata_clean.iloc[int(intmolts_clean[0,0,i]):int(intmolts_clean[0,1,i]),i])
-        scaled_L2[:,i] = np.interp(np.arange(0,mean_L2), np.arange(0,(intmolts_clean[0,2,i] - intmolts_clean[0,1,i])), gfpdata_clean.iloc[int(intmolts_clean[0,1,i]):int(intmolts_clean[0,2,i]),i])
-        scaled_L3[:,i] = np.interp(np.arange(0,mean_L3), np.arange(0,(intmolts_clean[0,3,i] - intmolts_clean[0,2,i])), gfpdata_clean.iloc[int(intmolts_clean[0,2,i]):int(intmolts_clean[0,3,i]),i])
-        scaled_L4[:,i] = np.interp(np.arange(0,mean_L4), np.arange(0,(intmolts_clean[0,4,i] - intmolts_clean[0,3,i])), gfpdata_clean.iloc[int(intmolts_clean[0,3,i]):int(intmolts_clean[0,4,i]),i])
-
-
-    new_molt = molts_clean[:,:,:]-intmolts_clean[0,0:4,:]
-
-    new_molt_mean = np.zeros((4,2))
-
-    for i in np.arange(0,4):
-        new_molt_mean[i,0] = np.mean(new_molt[0,i,:])
-        new_molt_mean[i,1] = np.mean(new_molt[1,i,:])
-
-    new_molt_std = np.zeros((4,2))
-
-    for i in np.arange(0,4):
-        new_molt_std[i,0] = np.std(new_molt[0,i,:])
-        new_molt_std[i,1] = np.std(new_molt[1,i,:])
-
-
-    order = 1
-    def butter_bandpass(lowcut, highcut, fs, order=order):
-        nyq = 0.5 * fs
-        low = lowcut / nyq
-        high = highcut / nyq
-        b, a = butter(order, [low, high], btype='band')
-        return b, a
-
-
-    def butter_bandpass_filter(data, lowcut, highcut, fs, order=order):
-        b, a = butter_bandpass(lowcut, highcut, fs, order=order)
-        y = filtfilt(b, a, data, padtype='constant')
-        return y
-
+    #Scale the data to each individual larval stage according to mean length of larval stage (not working yet)
+    #scaled_all, new_molt_mean, new_molt_std = scale_data(intmolts_clean, molts_clean, gfpdata_clean)
+    
+    #hilbert analysis
     st.sidebar.title("Hilbert analysis for phases at molt entry and exit")
 
     if st.sidebar.checkbox("plot phase from Hilbert at molt entry and exit"):
@@ -450,177 +280,23 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             lowcut = 1/14 #default 1/14 --> 14 hour period
             highcut = 1/5 #default 1/5 --> 5 hour period
 
-        data = f_clean_df_clean
-
-        y = []
-        for i in np.arange(0,len(f_clean_df_clean.columns)):
-            y.append(butter_bandpass_filter((data.iloc[:,i]-np.mean(data.iloc[:,i])), lowcut, highcut, fs, order=order))
-
-        analytic_signal = []
-        amplitude_envelope = []
-        instantaneous_phase = []
-        instantaneous_frequency = []
-        inst_phase_deriv = []
-        PeriodoverTime = []
-        my_phase = []
-        for i in np.arange(0,len(f_clean_df_clean.columns)): 
-            analytic_signal.append(hilbert(y[i]))
-            amplitude_envelope.append(np.abs(analytic_signal[i]))
-            instantaneous_phase.append(np.unwrap(np.angle(analytic_signal[i])))
-            instantaneous_frequency.append((np.diff(instantaneous_phase[i]) / (2.0*np.pi) * fs))
-            inst_phase_deriv.append(np.diff(instantaneous_phase[i]))
-            PeriodoverTime.append((2*np.pi)/inst_phase_deriv[i])    
-            my_phase.append(np.angle(analytic_signal[i]))
-
-
-        worm_names = leth_clean.columns
-
-        phase = pd.DataFrame(my_phase).T
-        phase.columns = worm_names[1:]
-        phase_melt = phase.melt()
-        phase_melt.columns = ["Worm", "phase"]
-        phase_melt["Timepoint"] = np.tile(np.arange(1,dev_length+1), len(my_phase))
-
-        molt_entry_phase = []
-        molt_exit_phase = []
-
-        for i in np.arange(0,len(gfpdata_clean.columns)):
-            for n in np.arange(0,4):
-            
-                entry_tp = int(intmolts_clean[1,n,i] - intmolts_clean[0,0,i])
-                exit_tp = int(intmolts_clean[0,n+1,i] - intmolts_clean[0,0,i])
-                molt_entry_phase.append(my_phase[i][entry_tp])
-                molt_exit_phase.append(my_phase[i][exit_tp])
-        molt_entr_ph_L1 = []
-        molt_entr_ph_L2 = []
-        molt_entr_ph_L3 = []
-        molt_entr_ph_L4 = []
-
-        molt_exit_ph_L1 = []
-        molt_exit_ph_L2 = []
-        molt_exit_ph_L3 = []
-        molt_exit_ph_L4 = []
-
-        for i in np.arange(0,len(gfpdata_clean.columns)):
-            molt_entr_ph_L1.append(molt_entry_phase[4*i]) #select M1 molt entry phase, +np.pi because wavelets start at -pi (=0 degree) over 0 (=180degree) to pi (=360 degree)
-            molt_entr_ph_L2.append(molt_entry_phase[4*i+1])
-            molt_entr_ph_L3.append(molt_entry_phase[4*i+2])
-            molt_entr_ph_L4.append(molt_entry_phase[4*i+3])
-            
-            molt_exit_ph_L1.append(molt_exit_phase[4*i])
-            molt_exit_ph_L2.append(molt_exit_phase[4*i+1])
-            molt_exit_ph_L3.append(molt_exit_phase[4*i+2])
-            molt_exit_ph_L4.append(molt_exit_phase[4*i+3])
-
-
-
-    #correct (switch) phase 
-
-        corr_molt_entr_ph_L1 = [] #the following code switched the phase in case some data points run over 2pi
-        for i in np.arange(0,len(molt_entr_ph_L1)):
-            if np.sign(np.median(molt_entr_ph_L1)) != np.sign(molt_entr_ph_L1[i]):
-                corr_molt_entr_ph_L1.append(molt_entr_ph_L1[i]+2*np.pi) 
-            else:
-                corr_molt_entr_ph_L1.append(molt_entr_ph_L1[i])
-
-        corr_molt_exit_ph_L1 = []
-        for i in np.arange(0,len(molt_exit_ph_L1)):
-            if np.sign(np.median(molt_exit_ph_L1)) != np.sign(molt_exit_ph_L1[i]):
-                corr_molt_exit_ph_L1.append(molt_exit_ph_L1[i]+2*np.pi)
-            else:
-                corr_molt_exit_ph_L1.append(molt_exit_ph_L1[i])
-
-        corr_molt_entr_ph_L2 = []
-        for i in np.arange(0,len(molt_entr_ph_L2)):
-            if np.sign(np.median(molt_entr_ph_L2)) != np.sign(molt_entr_ph_L2[i]):
-                corr_molt_entr_ph_L2.append(molt_entr_ph_L2[i]+2*np.pi)
-            else:
-                corr_molt_entr_ph_L2.append(molt_entr_ph_L2[i])
+        my_phase, PeriodoverTime, phase_melt = run_hilbert(f_clean_df_clean, leth_clean, lowcut, highcut, fs, dev_length)
+ 
+        #obtain phase at molt entry and exit
+        molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4 = phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase)
         
-        corr_molt_exit_ph_L2 = []
-        for i in np.arange(0,len(molt_exit_ph_L2)):
-            if np.sign(np.median(molt_exit_ph_L2)) != np.sign(molt_exit_ph_L2[i]):
-                corr_molt_exit_ph_L2.append(molt_exit_ph_L2[i]+2*np.pi)
-            else:
-                corr_molt_exit_ph_L2.append(molt_exit_ph_L2[i])
 
-        corr_molt_entr_ph_L3 = [] #the following code switched the phase in case some data points run over 2pi
-        for i in np.arange(0,len(molt_entr_ph_L3)):
-            if np.sign(np.median(molt_entr_ph_L3)) != np.sign(molt_entr_ph_L3[i]):
-                corr_molt_entr_ph_L3.append(molt_entr_ph_L3[i]+2*np.pi) 
-            else:
-                corr_molt_entr_ph_L3.append(molt_entr_ph_L3[i])
-
-        corr_molt_exit_ph_L3 = []
-        for i in np.arange(0,len(molt_exit_ph_L3)):
-            if np.sign(np.median(molt_exit_ph_L3)) != np.sign(molt_exit_ph_L3[i]):
-                corr_molt_exit_ph_L3.append(molt_exit_ph_L3[i]+2*np.pi)
-            else:
-                corr_molt_exit_ph_L3.append(molt_exit_ph_L3[i])
-
-        corr_molt_entr_ph_L4 = []
-        for i in np.arange(0,len(molt_entr_ph_L4)):
-            if np.sign(np.median(molt_entr_ph_L4)) != np.sign(molt_entr_ph_L4[i]):
-                corr_molt_entr_ph_L4.append(molt_entr_ph_L4[i]+2*np.pi)
-            else:
-                corr_molt_entr_ph_L4.append(molt_entr_ph_L4[i])
+        #correct (switch) phase 
+        corr_molt_entr_ph_L1, corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4 = correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
         
-        corr_molt_exit_ph_L4 = []
-        for i in np.arange(0,len(molt_exit_ph_L4)):
-            if np.sign(np.median(molt_exit_ph_L4)) != np.sign(molt_exit_ph_L4[i]):
-                corr_molt_exit_ph_L4.append(molt_exit_ph_L4[i]+2*np.pi)
-            else:
-                corr_molt_exit_ph_L4.append(molt_exit_ph_L4[i])
+        #sort lethargus (optional, not used for plotting)
+        leth_new_sorted = sort_lethargus(leth_clean, intmolts_clean)
+
+        #calculate period per larval stage
+        period_L2, period_L3, period_L4 = period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean)
         
-        #up to here in procswi
-        leth_corr = []
-        end = []
-        for i in np.arange(1,len(leth_clean.columns)):
-            end.append(len(leth_clean)-int(intmolts_clean[0,0,i-1]))
-        max_len = np.min(end)
-
-        for i in np.arange(1,len(leth_clean.columns)):
-            leth_corr.append(leth_clean.iloc[int(intmolts_clean[0,0,i-1]):(int(intmolts_clean[0,0,i-1])+max_len),i])
-
-        leth_new = np.asarray(leth_corr)
-
-        leth_new_sorted = leth_new[np.argsort(intmolts_clean[1,0,:]-intmolts_clean[0,0,:]),:]
-
-
-        period_L2 = []
-        period_L3 = []
-        period_L4 = []
-
-        sem_L2 = []
-        sem_L3 = []
-        sem_L4 = []
-
-        for i in np.arange(0,len(gfpdata_clean.columns)):
-                entry_tp_2 = int(intmolts_clean[0,1,i] - intmolts_clean[0,0,i])
-                exit_tp_2 = int(intmolts_clean[0,2,i] - intmolts_clean[0,0,i])
-                entry_tp_3 = int(intmolts_clean[0,2,i] - intmolts_clean[0,0,i])
-                exit_tp_3 = int(intmolts_clean[0,3,i] - intmolts_clean[0,0,i])
-                entry_tp_4 = int(intmolts_clean[0,3,i] - intmolts_clean[0,0,i])
-                exit_tp_4 = int(intmolts_clean[0,4,i] - intmolts_clean[0,0,i])
-                period_L2.append(np.nanmean(PeriodoverTime[i][entry_tp_2:exit_tp_2])/6)
-                period_L3.append(np.nanmean(PeriodoverTime[i][entry_tp_3:exit_tp_3])/6)
-                period_L4.append(np.nanmean(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
-                #sem_L1_1.append(sc.sem(periods_all[i][entry_tp_1_1:exit_tp_1_1])/6)
-                sem_L2.append(sc.sem(PeriodoverTime[i][entry_tp_2:exit_tp_2])/6)
-                sem_L3.append(sc.sem(PeriodoverTime[i][entry_tp_3:exit_tp_3])/6)
-                sem_L4.append(sc.sem(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
-
         #Error propagation of the phase calling
-        MEAN_periods_and_LS = [[np.mean(L2_dur_wt), np.mean(L3_dur_wt), np.mean(L4_dur_wt)],[np.mean(period_L2), np.mean(period_L3),  np.mean(period_L4)], [np.mean(L2_int_wt), np.mean(L3_int_wt), np.mean(L4_int_wt)]]
-        STD_periods_and_LS = [[np.std(L2_dur_wt), np.std(L3_dur_wt),np.std(L4_dur_wt)], [np.std(period_L2), np.std(period_L3),  np.std(period_L4)], [np.std(L2_int_wt), np.std(L3_int_wt), np.std(L4_int_wt)]]
-        prop_err_exit = []
-        prop_err_entry = []
-        for i in np.arange(0,3):
-            LS = ufloat(MEAN_periods_and_LS[0][i], STD_periods_and_LS[0][i])
-            per = ufloat(MEAN_periods_and_LS[1][i], STD_periods_and_LS[1][i])
-            IM = ufloat(MEAN_periods_and_LS[2][i], STD_periods_and_LS[2][i])
-            prop_err_exit.append((2*np.pi)/per*LS)
-            prop_err_entry.append((2*np.pi)/per*IM)
+        prop_err_entry, prop_err_exit = error_prop(larval_stage_dur.loc[larval_stage_dur["variable"]=="L2",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L3",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L4",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM2",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM3",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM4",:]["value"].values, period_L2, period_L3, period_L4)
 
 
         #plot 2
@@ -656,14 +332,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
 
         if st.checkbox("flip phases (in case they are at boundary)"):
-
-            molt_ph_entry = pd.DataFrame([corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-            molt_ph_entry["Molt"] = "entry"
-            
-            molt_ph_exit = pd.DataFrame([corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-            molt_ph_exit["Molt"] = "exit"
-
-            molt_phases = molt_ph_entry.append(molt_ph_exit)
+            molt_phases = use_corrected_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
             
             #plot
             ax = f.add_subplot(122)
@@ -680,14 +349,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             st.pyplot()
 
         else:
-
-            molt_ph_entry = pd.DataFrame([molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-            molt_ph_entry["Molt"] = "entry"
-            
-            molt_ph_exit = pd.DataFrame([molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
-            molt_ph_exit["Molt"] = "exit"
-
-            molt_phases = molt_ph_entry.append(molt_ph_exit)
+            molt_phases = use_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
             
             #plot
             ax = f.add_subplot(122)
@@ -703,40 +365,18 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
             st.pyplot()
 
-
-
         #period and larval stage duration and error propagated plots
 
         #prepare error propagated data 
-        std_phases_entry = molt_ph_entry[["variable", "value"]].groupby("variable").std().iloc[1:3,:]
-        error_prop_std_entry = []
-        for i in np.arange(0,2):
-            error_prop_std_entry.append(prop_err_entry[i].std_dev)
+        std_phases_all = combine_stds(molt_phases.loc[molt_phases["Molt"]=="entry",:], prop_err_entry, molt_phases.loc[molt_phases["Molt"]=="exit",:], prop_err_exit)
 
-        std_phases_entry["error_prop_std"] = error_prop_std_entry
-        std_phases_entry["ratio sd_obs/sd_exp"] = std_phases_entry["value"]/std_phases_entry["error_prop_std"]
-        std_phases_entry["entry_or_exit"] = "entry"
-
-        std_phases_exit = molt_ph_exit[["variable", "value"]].groupby("variable").std().iloc[1:3,:]
-        error_prop_std_exit = []
-        for i in np.arange(0,2):
-            error_prop_std_exit.append(prop_err_exit[i].std_dev)
-
-        std_phases_exit["error_prop_std"] = error_prop_std_exit
-        std_phases_exit["ratio sd_obs/sd_exp"] = std_phases_exit["value"]/std_phases_exit["error_prop_std"]
-        std_phases_exit["entry_or_exit"] = "exit"
-
-        std_phases_all = std_phases_exit.append(std_phases_entry)
-        
-        std_phases_all["observation"] = std_phases_all.index
-        
         #plot
 
         f = plt.figure(figsize=(8,3), dpi=150)
         y_lim_low_LS_and_PER = st.sidebar.number_input("y-axis lower limit of larval stage and period", 0,100, 0)
         y_lim_high_LS_and_PER = st.sidebar.number_input("y-axis upper limit of larval stage and period", 0,100, 17)
         
-        periods_and_LS = pd.DataFrame([L2_dur_wt, period_L2, L3_dur_wt, period_L3, L4_dur_wt, period_L4], index = ["L2_dur", "L2_period", "L3_dur", "L3_period", "L4_dur", "L4_period"]).T.melt()
+        periods_and_LS = pd.DataFrame([larval_stage_dur.loc[larval_stage_dur["variable"]=="L2",:]["value"].values, period_L2, larval_stage_dur.loc[larval_stage_dur["variable"]=="L3",:]["value"].values, period_L3, larval_stage_dur.loc[larval_stage_dur["variable"]=="L4",:]["value"].values, period_L4], index = ["L2_dur", "L2_period", "L3_dur", "L3_period", "L4_dur", "L4_period"]).T.melt()
         a1 = f.add_subplot(121)
         sns.boxplot(x = "variable", y = "value", data = periods_and_LS,
         palette = "Greys", ax = a1)
@@ -766,7 +406,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
         
         save_dir_data = st.sidebar.text_input("add location", "")
-        phase.to_csv(save_dir_data + "phase.csv") 
+        my_phase.to_csv(save_dir_data + "phase.csv") 
         larval_stage_dur.to_csv(save_dir_data + "Larval_stage_durations.csv") 
         molt_dur.to_csv(save_dir_data + "Molt_durations.csv")
         intermolt_dur.to_csv(save_dir_data + "Intermolt_durations.csv")
@@ -775,9 +415,3 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         #write molting time points per worm
         #write phases at molt entry / exit per worm
         #write error prop data
-
-
-
-
-
-

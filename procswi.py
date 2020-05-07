@@ -15,6 +15,7 @@ import streamlit as st
 
 
 #Lethargus analysis including progress bar
+@st.cache(suppress_st_warning=True)
 def lethargus_analysis(leth):
 
     # Add a placeholder
@@ -65,18 +66,21 @@ def lethargus_analysis(leth):
 
 
 #show image in app
+@st.cache()
 def show_worm_image():
     image = Image.open(os.path.dirname(__file__) + "/SWI_chambers_OP50_202020215.png")
     return image
 
 
 #load raw data
+@st.cache()
 def load_lethargus(uploaded_file_leth):
     uploaded_file_leth = st.sidebar.file_uploader("Choose file for lethargus data", type="csv")
     if uploaded_file_leth is not None:
         leth = pd.read_csv(uploaded_file_leth)
         return leth
 
+@st.cache()
 def load_gfp(uploaded_file_GFP):
     uploaded_file_GFP = st.sidebar.file_uploader("Choose file for GFP data", type="csv")
     if uploaded_file_GFP is not None:
@@ -87,7 +91,8 @@ def load_gfp(uploaded_file_GFP):
 
 
 #adjust gfpdata
-def adjust_gfp(gfpdata):
+@st.cache()
+def adjust_gfp(gfpdata, intmolts, dev_length):
     gfp_adj = []
     for i in np.arange(0,len(gfpdata.columns)): 
         gfp_adj.append(gfpdata.iloc[(int(intmolts[0,0,i])):(int(intmolts[0,0,i])+dev_length),i])
@@ -97,7 +102,8 @@ def adjust_gfp(gfpdata):
 
 
 #interpolate gfp data
-def interpolate_gfp(gfpdata, intmolts):
+@st.cache()
+def interpolate_gfp(gfpdata, intmolts, dev_length):
     for i in np.arange(0,len(gfpdata.columns)):
         f = gfpdata.interpolate(method = 'linear', axis =0, limit = 60, limit_direction = 'backward')
 
@@ -106,9 +112,14 @@ def interpolate_gfp(gfpdata, intmolts):
         f_clean.append(f.iloc[int(intmolts[0,0,i]):int(intmolts[0,0,i]+dev_length),i].values)
     return f_clean
 
-
+#select valid worms
+@st.cache(allow_output_mutation=True)
+def set_up_valid_worms(gfpdata):
+    valid_worms_1 = np.repeat(1,len(gfpdata.columns))
+    return valid_worms_1
 
 #larval stage durations
+@st.cache()
 def calculate_durations(leth_clean, intmolts_clean, molts_clean):
 
     L1_int_wt = []
@@ -168,6 +179,7 @@ def calculate_durations(leth_clean, intmolts_clean, molts_clean):
 
 
 #Scale the data to each individual larval stage according to mean length of larval stage
+@st.cache()
 def scale_data(intmolts_clean, molts_clean, gfpdata_clean):
     mean_L1 = int(np.round(np.mean(intmolts_clean[0,1,:] - intmolts_clean[0,0,:])))
     mean_L2 = int(np.round(np.mean(intmolts_clean[0,2,:] - intmolts_clean[0,1,:])))
@@ -206,8 +218,7 @@ def scale_data(intmolts_clean, molts_clean, gfpdata_clean):
 
 
 #Hilbert transform
-def butter_bandpass(lowcut, highcut, fs, order=order):
-    order = 1
+def butter_bandpass(lowcut, highcut, fs, order=1):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -215,18 +226,18 @@ def butter_bandpass(lowcut, highcut, fs, order=order):
     return b, a
 
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=order):
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=1):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data, padtype='constant')
     return y
 
-
-def run_hilbert(f_clean_df_clean):
+@st.cache()
+def run_hilbert(f_clean_df_clean, leth_clean, lowcut, highcut, fs, dev_length):
     data = f_clean_df_clean
 
     y = []
     for i in np.arange(0,len(f_clean_df_clean.columns)):
-        y.append(butter_bandpass_filter((data.iloc[:,i]-np.mean(data.iloc[:,i])), lowcut, highcut, fs, order=order))
+        y.append(butter_bandpass_filter((data.iloc[:,i]-np.mean(data.iloc[:,i])), lowcut, highcut, fs, order=1))
 
     analytic_signal = []
     amplitude_envelope = []
@@ -255,8 +266,8 @@ def run_hilbert(f_clean_df_clean):
     return my_phase, PeriodoverTime, phase_melt
 
 
-
-def phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase)
+@st.cache()
+def phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase):
     molt_entry_phase = []
     molt_exit_phase = []
 
@@ -291,8 +302,8 @@ def phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase)
     return molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4
 
     #correct (switch) phase 
-
-def correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+@st.cache()
+def correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4):
     corr_molt_entr_ph_L1 = [] #the following code switched the phase in case some data points run over 2pi
     for i in np.arange(0,len(molt_entr_ph_L1)):
         if np.sign(np.median(molt_entr_ph_L1)) != np.sign(molt_entr_ph_L1[i]):
@@ -351,7 +362,8 @@ def correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_p
 
     return corr_molt_entr_ph_L1, corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4
 
-def sort_lethargus(leth_clean, intmolts_clean)
+@st.cache()
+def sort_lethargus(leth_clean, intmolts_clean):
     leth_corr = []
     end = []
     for i in np.arange(1,len(leth_clean.columns)):
@@ -365,7 +377,8 @@ def sort_lethargus(leth_clean, intmolts_clean)
 
     return leth_new[np.argsort(intmolts_clean[1,0,:]-intmolts_clean[0,0,:]),:]
 
-def period_per_LS(gfpdata_clean, intmolts_clean)
+@st.cache()
+def period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean):
     period_L2 = []
     period_L3 = []
     period_L4 = []
@@ -390,8 +403,8 @@ def period_per_LS(gfpdata_clean, intmolts_clean)
             #sem_L4.append(sc.sem(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
     return period_L2, period_L3, period_L4
 
-
-def error_prop(L2_dur_wt, L3_dur_wt, L4_dur_wt, L2_int_wt, L3_int_wt, L4_int_wt, period_L2, period_L3, period_L4)
+@st.cache()
+def error_prop(L2_dur_wt, L3_dur_wt, L4_dur_wt, L2_int_wt, L3_int_wt, L4_int_wt, period_L2, period_L3, period_L4):
     MEAN_periods_and_LS = [[np.mean(L2_dur_wt), np.mean(L3_dur_wt), np.mean(L4_dur_wt)],[np.mean(period_L2), np.mean(period_L3),  np.mean(period_L4)], [np.mean(L2_int_wt), np.mean(L3_int_wt), np.mean(L4_int_wt)]]
     STD_periods_and_LS = [[np.std(L2_dur_wt), np.std(L3_dur_wt),np.std(L4_dur_wt)], [np.std(period_L2), np.std(period_L3),  np.std(period_L4)], [np.std(L2_int_wt), np.std(L3_int_wt), np.std(L4_int_wt)]]
     prop_err_exit = []
@@ -405,28 +418,30 @@ def error_prop(L2_dur_wt, L3_dur_wt, L4_dur_wt, L2_int_wt, L3_int_wt, L4_int_wt,
 
     return prop_err_entry, prop_err_exit
 
-
-def use_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+@st.cache()
+def use_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4):
     molt_ph_entry = pd.DataFrame([molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
     molt_ph_entry["Molt"] = "entry"
     
     molt_ph_exit = pd.DataFrame([molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
     molt_ph_exit["Molt"] = "exit"
 
-    return = molt_ph_entry.append(molt_ph_exit)
+    molt_phase_both = molt_ph_entry.append(molt_ph_exit)
+    return molt_phase_both
 
-
-def use_corrected_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
+@st.cache()
+def use_corrected_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4):
     molt_ph_entry = pd.DataFrame([corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
     molt_ph_entry["Molt"] = "entry"
     
     molt_ph_exit = pd.DataFrame([corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4], index = ["M1", "M2", "M3", "M4"]).T.melt()
     molt_ph_exit["Molt"] = "exit"
 
-    return = molt_ph_entry.append(molt_ph_exit)
-    
+    molt_phase_both_corr = molt_ph_entry.append(molt_ph_exit)
+    return molt_phase_both_corr
 
-def combine_stds(molt_ph_entry, prop_err_entry, molt_ph_exit, prop_err_exit)
+@st.cache()
+def combine_stds(molt_ph_entry, prop_err_entry, molt_ph_exit, prop_err_exit):
     std_phases_entry = molt_ph_entry[["variable", "value"]].groupby("variable").std().iloc[1:3,:]
     error_prop_std_entry = []
     for i in np.arange(0,2):
