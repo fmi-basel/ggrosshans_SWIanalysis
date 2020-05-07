@@ -114,9 +114,9 @@ if uploaded_file_GFP is not None:
     gfpdata_original = pd.read_csv(uploaded_file_GFP)
     gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
-leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
-gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
-gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
+#leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
+#gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
+#gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
 st.sidebar.title("Display raw data")
 
@@ -572,7 +572,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             else:
                 corr_molt_exit_ph_L4.append(molt_exit_ph_L4[i])
         
-        
+        #up to here in procswi
         leth_corr = []
         end = []
         for i in np.arange(1,len(leth_clean.columns)):
