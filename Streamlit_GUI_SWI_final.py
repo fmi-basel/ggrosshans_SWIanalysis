@@ -103,8 +103,8 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     gfp_adj = adjust_gfp(gfpdata, intmolts, dev_length)
 
     #plot GFP raw data
-    #figure_raw_gfp = bokeh_plot_gfp_raw(gfpdata, gfp_adj, molts, intmolts, dev_length)
-    #st.bokeh_chart(figure_raw_gfp, use_container_width=True)
+    figure_raw_gfp = bokeh_plot_gfp_raw(gfpdata, gfp_adj, molts, intmolts, dev_length)
+    st.bokeh_chart(figure_raw_gfp, use_container_width=True)
 
     #######run GFP analysis
 
