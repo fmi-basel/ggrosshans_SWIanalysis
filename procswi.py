@@ -403,7 +403,7 @@ def period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean):
             #sem_L4.append(sc.sem(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
     return period_L2, period_L3, period_L4
 
-@st.cache()
+@st.cache(allow_output_mutation=True)
 def error_prop(L2_dur_wt, L3_dur_wt, L4_dur_wt, L2_int_wt, L3_int_wt, L4_int_wt, period_L2, period_L3, period_L4):
     MEAN_periods_and_LS = [[np.mean(L2_dur_wt), np.mean(L3_dur_wt), np.mean(L4_dur_wt)],[np.mean(period_L2), np.mean(period_L3),  np.mean(period_L4)], [np.mean(L2_int_wt), np.mean(L3_int_wt), np.mean(L4_int_wt)]]
     STD_periods_and_LS = [[np.std(L2_dur_wt), np.std(L3_dur_wt),np.std(L4_dur_wt)], [np.std(period_L2), np.std(period_L3),  np.std(period_L4)], [np.std(L2_int_wt), np.std(L3_int_wt), np.std(L4_int_wt)]]

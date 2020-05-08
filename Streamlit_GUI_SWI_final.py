@@ -16,7 +16,6 @@ import matplotlib
 import io
 import os
 from PIL import Image
-from bokeh.plotting import figure
 from procswi import * #these are the custom functions for the single worm imaging analysis
 
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -108,11 +107,11 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     x_axis_label='Time of larval development (h)',
     y_axis_label='GFP intensities (a.u.)')
     for i in np.arange(0,len(gfpdata.columns)): 
-        p.line(np.arange(0,dev_length)/6, gfp_adj[i], legend='Single worm GFP trace', line_width=2, line_color="black", line_alpha = 0.4)
+        p.line(np.arange(0,dev_length)/6, gfp_adj[i], legend_label='Single worm GFP trace', line_width=2, line_color="black", line_alpha = 0.4)
         for n in np.arange(0,4):
             molt_tp = np.arange((molts[0,n,i])-int(intmolts[0,0,i]),(molts[1,n,i]+1-int(intmolts[0,0,i])))
             gfp_dMolt = gfpdata.iloc[np.arange((molts[0,n,i]),(molts[1,n,i]+1)),i]
-            p.line((molt_tp/6), gfp_dMolt, line_color = "red", legend = "molt", line_width = 2, alpha = 0.3)        
+            p.line((molt_tp/6), gfp_dMolt, line_color = "red", legend_label = "molt", line_width = 2, alpha = 0.3)        
             p.xaxis.major_label_text_font_size = "15pt"
             p.xaxis.axis_label_text_font_size = "15pt"
             p.yaxis.major_label_text_font_size = "15pt"
@@ -297,7 +296,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         
         #Error propagation of the phase calling
         prop_err_entry, prop_err_exit = error_prop(larval_stage_dur.loc[larval_stage_dur["variable"]=="L2",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L3",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L4",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM2",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM3",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM4",:]["value"].values, period_L2, period_L3, period_L4)
-
+        
 
         #plot 2
         st.sidebar.subheader("adjust y-axis limits")
@@ -331,8 +330,8 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         a2.xaxis.set_ticks_position('bottom')
 
 
-        if st.checkbox("flip phases (in case they are at boundary)"):
-            molt_phases = use_corrected_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+        if st.checkbox("flip phases (in case they are at boundary)", value = False):
+            molt_phases = use_corrected_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
             
             #plot
             ax = f.add_subplot(122)
@@ -349,7 +348,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             st.pyplot()
 
         else:
-            molt_phases = use_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
+            molt_phases = use_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
             
             #plot
             ax = f.add_subplot(122)
@@ -362,8 +361,12 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             ax.legend(frameon=False)
             ax.set_ylim(ylim_phase_min, ylim_phase_max)
             plt.tight_layout()
-
-            st.pyplot()
+            if st.checkbox("click for saving figure 4"):
+                save_fig4 = str(st.text_input("location/filename to save the figure:", ""))
+                plt.savefig(save_fig4)
+                st.pyplot()
+            else:
+                st.pyplot()
 
         #period and larval stage duration and error propagated plots
 
