@@ -2,9 +2,12 @@
 import pytest
 import os
 import sys
+import pandas as pd
 from processing.procswi import *
-#prepare fake lethargus data
-lethargus_data = pd.DataFrame
+
+
+#import example lethargus data
+lethargus_data = pd.read_csv("../example_files/Lethargus_pYPH5_EV.csv")
 
 
 
