@@ -16,8 +16,8 @@ import matplotlib
 import io
 import os
 from PIL import Image
-from procswi import * #these are the custom functions for the single worm imaging analysis
-from plotting_SWI import *
+import processing.procswi as proc_swi #these are the custom functions for the single worm imaging analysis
+import plotting.plotting_SWI as plot_SWI
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -85,7 +85,7 @@ if st.sidebar.checkbox("show GFP data"):
 st.sidebar.title("Lethargus analysis")
 
 if st.sidebar.checkbox("start lethargus analysis"):
-    intmolts, molts = lethargus_analysis(leth)
+    intmolts, molts = proc_swi.lethargus_analysis(leth)
     st.success("Lethargus analysis successful!")
 
 
@@ -100,26 +100,26 @@ if st.sidebar.checkbox("plot GFP data with molts"):
     st.write("This will be a nice description for the plot")
 
     #adjusted gfp data to start from hatch for every worm individually
-    gfp_adj = adjust_gfp(gfpdata, intmolts, dev_length)
+    gfp_adj = proc_swi.adjust_gfp(gfpdata, intmolts, dev_length)
 
     #plot GFP raw data
-    figure_raw_gfp = bokeh_plot_gfp_raw(gfpdata, gfp_adj, molts, intmolts, dev_length)
+    figure_raw_gfp = plot_SWI.bokeh_plot_gfp_raw(gfpdata, gfp_adj, molts, intmolts, dev_length)
     st.bokeh_chart(figure_raw_gfp, use_container_width=True)
 
     #######run GFP analysis
 
     # calculations (can be improved with dataframes etc)
     # interpolate gfp data  
-    f_clean = interpolate_gfp(gfpdata, intmolts, dev_length)
+    f_clean = proc_swi.interpolate_gfp(gfpdata, intmolts, dev_length)
 
     # select valid worms
-    valid_worms = set_up_valid_worms(gfpdata)
+    valid_worms = proc_swi.set_up_valid_worms(gfpdata)
 
     if st.sidebar.checkbox("filter out bad worms"):
         worm_to_check = st.sidebar.number_input("worm number", 1 , step = 1) - 1
         
         #plot individual worm in sidebar
-        evaluated = plot_ind_worm_sidebar(gfpdata, f_clean, dev_length, molts, intmolts, worm_to_check, linewidth_sidebar)
+        evaluated = plot_SWI.plot_ind_worm_sidebar(gfpdata, f_clean, dev_length, molts, intmolts, worm_to_check, linewidth_sidebar)
         evaluated = st.sidebar.checkbox("valid worm", value = True)
         valid_worms[worm_to_check] = evaluated
         valid_worms_df = pd.DataFrame({"worm": gfpdata.columns, "valid": valid_worms})
@@ -150,13 +150,13 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         alpha_mean = st.sidebar.slider("transparency of mean", 0,100,90)
         alpha_std = st.sidebar.slider("transparency of standard deviation", 0,100,20)
         #plot
-        plot_gfp_and_molts(gfpdata, dev_length, f_clean_df_clean, alpha_mean, alpha_gfp, alpha_molt, alpha_std, molts_clean, intmolts_clean, labelsize, linewidth)
+        plot_SWI.plot_gfp_and_molts(gfpdata, dev_length, f_clean_df_clean, alpha_mean, alpha_gfp, alpha_molt, alpha_std, molts_clean, intmolts_clean, labelsize, linewidth)
 
     
     st.sidebar.title("Plot developmental durations")
 
     #Larval stage durations
-    larval_stage_dur, molt_dur, intermolt_dur = calculate_durations(leth_clean, intmolts_clean, molts_clean)
+    larval_stage_dur, molt_dur, intermolt_dur = proc_swi.calculate_durations(leth_clean, intmolts_clean, molts_clean)
 
 
     if st.sidebar.checkbox("plot molt, intermolt and larval stage duration"):
@@ -168,7 +168,7 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         y_lim_low_larvalstage = st.sidebar.number_input("larval stage y-axis lower limit", 0,100, 0)
         y_lim_high_larvalstage = st.sidebar.number_input("larval stage y-axis upper limit", 0,100, 17)
         #plot
-        plot_durations(molt_dur, intermolt_dur, larval_stage_dur, y_lim_low_molt, y_lim_high_molt, y_lim_low_intermolt, y_lim_high_intermolt, y_lim_low_larvalstage, y_lim_high_larvalstage)
+        plot_SWI.plot_durations(molt_dur, intermolt_dur, larval_stage_dur, y_lim_low_molt, y_lim_high_molt, y_lim_low_intermolt, y_lim_high_intermolt, y_lim_low_larvalstage, y_lim_high_larvalstage)
 
 
 
@@ -194,28 +194,28 @@ if st.sidebar.checkbox("plot GFP data with molts"):
             lowcut = 1/14 #default 1/14 --> 14 hour period
             highcut = 1/5 #default 1/5 --> 5 hour period
 
-        my_phase, PeriodoverTime, phase_melt = run_hilbert(f_clean_df_clean, leth_clean, lowcut, highcut, fs, dev_length)
+        my_phase, PeriodoverTime, phase_melt = proc_swi.run_hilbert(f_clean_df_clean, leth_clean, lowcut, highcut, fs, dev_length)
  
         #obtain phase at molt entry and exit
-        molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4 = phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase)
+        molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4 = proc_swi.phase_molt_entry_exit(gfpdata_clean, intmolts_clean, my_phase)
         
         #correct (switch) phase 
-        corr_molt_entr_ph_L1, corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4 = correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+        corr_molt_entr_ph_L1, corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4 = proc_swi.correct_phase(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
         
         #sort lethargus (optional, not used for plotting)
-        leth_new_sorted = sort_lethargus(leth_clean, intmolts_clean)
+        leth_new_sorted = proc_swi.sort_lethargus(leth_clean, intmolts_clean)
 
         #calculate period per larval stage
-        period_L2, period_L3, period_L4 = period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean)
+        period_L2, period_L3, period_L4 = proc_swi.period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean)
         
         #Error propagation of the phase calling
-        prop_err_entry, prop_err_exit = error_prop(larval_stage_dur.loc[larval_stage_dur["variable"]=="L2",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L3",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L4",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM2",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM3",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM4",:]["value"].values, period_L2, period_L3, period_L4)
+        prop_err_entry, prop_err_exit = proc_swi.error_prop(larval_stage_dur.loc[larval_stage_dur["variable"]=="L2",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L3",:]["value"].values, larval_stage_dur.loc[larval_stage_dur["variable"]=="L4",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM2",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM3",:]["value"].values, intermolt_dur.loc[intermolt_dur["variable"]=="IM4",:]["value"].values, period_L2, period_L3, period_L4)
         
         #plot 2
         st.subheader("Phases at molt entry and exit")
 
-        molt_phases_normal = use_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
-        molt_phases_corr = use_corrected_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
+        molt_phases_normal = proc_swi.use_phases(molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+        molt_phases_corr = proc_swi.use_corrected_phases(corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4)
 
         st.sidebar.subheader("adjust y-axis limits")
 
@@ -226,19 +226,19 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         
         
         #plot scatter
-        plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min, ylim_phase_max, gfpdata_clean, dev_length, my_phase, molts_clean, intmolts_clean, corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4, molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
+        plot_SWI.plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min, ylim_phase_max, gfpdata_clean, dev_length, my_phase, molts_clean, intmolts_clean, corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4, molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
         #period and larval stage duration and error propagated plots
 
         #prepare error propagated data
         st.subheader("Larval stage vs osc period and error propagation")
 
         if st.checkbox("use flipped phases for error propagation", value = False):
-            std_phases_all = combine_stds(molt_phases_corr.loc[molt_phases_corr["Molt"]=="entry",:], prop_err_entry, molt_phases_corr.loc[molt_phases_corr["Molt"]=="exit",:], prop_err_exit)
+            std_phases_all = proc_swi.combine_stds(molt_phases_corr.loc[molt_phases_corr["Molt"]=="entry",:], prop_err_entry, molt_phases_corr.loc[molt_phases_corr["Molt"]=="exit",:], prop_err_exit)
         else:
-            std_phases_all = combine_stds(molt_phases_normal.loc[molt_phases_normal["Molt"]=="entry",:], prop_err_entry, molt_phases_normal.loc[molt_phases_normal["Molt"]=="exit",:], prop_err_exit)
+            std_phases_all = proc_swi.combine_stds(molt_phases_normal.loc[molt_phases_normal["Molt"]=="entry",:], prop_err_entry, molt_phases_normal.loc[molt_phases_normal["Molt"]=="exit",:], prop_err_exit)
 
         #plot
-        plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4, std_phases_all)
+        plot_SWI.plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4, std_phases_all)
 
     st.sidebar.title("export results")
     if st.sidebar.checkbox("Save results in following directory"):
