@@ -1,9 +1,9 @@
 #tests for SWI
-sys.path.append('../')
 import pytest
 import os
 import sys
 import pandas as pd
+sys.path.append('../')
 import processing.procswi as processing_SWI
 
 #import example lethargus data
@@ -34,3 +34,8 @@ def test_gfp_adjusting():
     dev_length= 231
     gfp_adjusted = processing_SWI.adjust_gfp(gfpdata, intmolts, dev_length)
     assert gfp_adjusted[1][50] == 62.0
+
+def test_gfp_adjusting_dimensions():
+    gfpdata_original = pd.read_csv(data_path + "Kymograph_Quantification.csv")
+    gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
+    assert len(gfpdata.columns) == 16
