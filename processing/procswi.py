@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
-import imp
 import scipy.stats as sc
 from scipy.signal import butter, filtfilt
 from scipy.signal import hilbert
