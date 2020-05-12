@@ -47,12 +47,11 @@ streamlit run Streamlit_GUI_SWI_final.py
 
 A window will pop up as following:
 
-![alt text](images/front_end.png)
+![alt text](images/example_streamlit_frontend.png)
 
-Then press **Analyze lethargus data** and select the file: Lethargus_pYPH5_EV.csv under the examples_files directory. A window will pop up when the analysis is
-done. Then press **Analyze GFP** and re-select the same file. Finally select the **Kymograph_Quantification.csv** under the examples_files directory. The final plots should appear in a new window as following:
+Then upload the **lethargus data** (Lethargus_pYPH5_EV.csv) and the **GFP intensit data** (Kymograph_Quantification.csv) from the examples_files directory. After the import, please follow the checkboxes in the sidebar. It is possible to show the imported lethargus and GFP data, then perform the lethargus analysis and further analyze the GFP data. More checkboxes with further analysis possibilities will appear once the initial analyses were executed.
 
-![alt text](images/results.png)
+![alt text](images/example_streamlit_frontend_results.png)
 
 At the end you can deactivate the virtual environment as following:
 
