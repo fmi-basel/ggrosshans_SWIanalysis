@@ -64,10 +64,6 @@ if uploaded_file_GFP is not None:
     gfpdata_original = pd.read_csv(uploaded_file_GFP)
     gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 
-#leth = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Lethargus_pYPH70_EV_clean.csv")
-#gfpdata_original = pd.read_csv("G:/user/Yannick.Hauser/Resource Analysis Paper/Results_Figures/Data/SWI/pYPH70_20180309/Kymograph_Quantification_20180309_BGsub_easy_clean.csv")
-#gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
-
 st.sidebar.title("Display raw data")
 
 if st.sidebar.checkbox("show lethargus data"):

@@ -112,7 +112,7 @@ def plot_durations(molt_dur, intermolt_dur, larval_stage_dur, y_lim_low_molt, y_
         axis.set_xlabel("")
     fig.tight_layout(w_pad = 5)
 
-    if st.checkbox("click for saving figure 3"):
+    if st.checkbox("click for saving figure 2"):
         save_fig3 = str(st.text_input("location/filename to save the figure:", ""))
         plt.savefig(save_fig3)
         st.pyplot()
@@ -175,7 +175,7 @@ def plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min
         ax.legend(frameon=False)
         ax.set_ylim(ylim_phase_min, ylim_phase_max)
         plt.tight_layout()
-        if st.checkbox("click for saving figure 4"):
+        if st.checkbox("click for saving figure 3"):
             save_fig4 = str(st.text_input("location/filename to save the figure:", ""))
             plt.savefig(save_fig4)
             st.pyplot()
@@ -206,7 +206,7 @@ def plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4
     a1_1.set_ylim(0,1.1)
     plt.tight_layout()
 
-    if st.checkbox("click for saving figure 5"):
+    if st.checkbox("click for saving figure 4"):
         save_fig5 = str(st.text_input("location/filename to save the figure:", ""))
         plt.savefig(save_fig5)
         st.pyplot()
