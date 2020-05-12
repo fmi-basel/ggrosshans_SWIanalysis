@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 contrib = [
-    'Yannick Hauser', 'Markus Rempfler', 
+    'Yannick Hauser', 'Markus Rempfler',
 ]
 
 # setup.
@@ -15,8 +15,16 @@ setup(
         'tests',
     ]),
     install_requires=[
-        'pandas','numpy', 'seaborn', 'matplotlib', 'scipy', 'uncertainties', 'streamlit', 
-        'time', 'bokeh', 'PIL', 'procswi', 'plotting_SWI', 'pytest', 'io', 'os'
+        'pandas',
+        'numpy',
+        'seaborn',
+        'matplotlib',
+        'scipy',
+        'uncertainties',
+        'streamlit',
+        'bokeh',
+        'Pillow',  # PIL is in Pillow
+        'pytest',
     ],
     # I believe zipping makes the import rather slow.
     zip_safe=False)
