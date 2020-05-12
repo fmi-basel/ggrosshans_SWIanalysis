@@ -65,6 +65,9 @@ deactivate
 - virtualenv
 - pandas>=0.24
 - numpy>=1.14
+- bokeh>=2.0.2
+- seaborn>=0.9.0
+- streamlit>=0.57.1
 - matplotlib>=3.0
 - scipy>=1.2
 - uncertainties>=3.0
@@ -72,4 +75,4 @@ deactivate
 ## Notes
 
 - Tested on OSX with Python 3.7.3
-- Tested on Windows with Python 3.5
+- Tested on Windows with Python 3.7.3
