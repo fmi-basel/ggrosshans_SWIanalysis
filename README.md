@@ -6,7 +6,7 @@
 
 Download the source code
 ```bash
-git clone https://github.com/fmi-basel/ggrosshans_SWIanalysis.git
+git clone https://github.com/fmi-basel/ggrosshans_SWIanalysis/tree/GUI_v2.git
 ```
 
 Enter the directory
@@ -39,10 +39,10 @@ Activate the virtual environment
 source venv/bin/activate
 ```
 
-Run analysis
+Run analysis using streamlit
 
 ```bash
-python SWI_analysis.py
+streamlit run Streamlit_GUI_SWI_final.py
 ```
 
 A window will pop up as following:
