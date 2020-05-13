@@ -8,14 +8,14 @@ sys.path.append('../')
 import processing.procswi as processing_SWI
 
 #import example lethargus data
-data_path = "C:/Users/hausyann/source/repos/ggrosshans_SWIanalysis/example_files/"
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'example_files/')
 
-lethargus = pd.read_csv(data_path + "Lethargus_pYPH5_EV.csv")
+lethargus = pd.read_csv(DATA_PATH + "Lethargus_pYPH5_EV.csv")
 intmolts, molts = processing_SWI.lethargus_analysis(lethargus)
 
 dev_length = 231
 
-gfpdata_original = pd.read_csv(data_path + "Kymograph_Quantification.csv")
+gfpdata_original = pd.read_csv(DATA_PATH + "Kymograph_Quantification.csv")
 gfpdata = gfpdata_original.pivot("Frame","Position", "Intensity_BGsub")
 gfp_adjusted = processing_SWI.adjust_gfp(gfpdata, intmolts, dev_length)
 
