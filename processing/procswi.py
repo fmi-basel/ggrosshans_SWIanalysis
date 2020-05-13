@@ -382,10 +382,6 @@ def period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean):
     period_L3 = []
     period_L4 = []
 
-    sem_L2 = []
-    sem_L3 = []
-    sem_L4 = []
-
     for i in np.arange(0,len(gfpdata_clean.columns)):
             entry_tp_2 = int(intmolts_clean[0,1,i] - intmolts_clean[0,0,i])
             exit_tp_2 = int(intmolts_clean[0,2,i] - intmolts_clean[0,0,i])
@@ -396,10 +392,7 @@ def period_per_LS(PeriodoverTime, gfpdata_clean, intmolts_clean):
             period_L2.append(np.nanmean(PeriodoverTime[i][entry_tp_2:exit_tp_2])/6)
             period_L3.append(np.nanmean(PeriodoverTime[i][entry_tp_3:exit_tp_3])/6)
             period_L4.append(np.nanmean(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
-            #sem_L1_1.append(sc.sem(periods_all[i][entry_tp_1_1:exit_tp_1_1])/6)
-            #sem_L2.append(sc.sem(PeriodoverTime[i][entry_tp_2:exit_tp_2])/6)
-            #sem_L3.append(sc.sem(PeriodoverTime[i][entry_tp_3:exit_tp_3])/6)
-            #sem_L4.append(sc.sem(PeriodoverTime[i][entry_tp_4:exit_tp_4])/6)
+
     return period_L2, period_L3, period_L4
 
 @st.cache(allow_output_mutation=True)
