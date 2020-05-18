@@ -248,10 +248,10 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
         st.sidebar.subheader("adjust y-axis limits")
 
-        ylim_phase_min = st.sidebar.number_input("phase ylim minimum", -4, 4, -4)
-        ylim_phase_max = st.sidebar.number_input("phase ylim minimum", -4, 4, 4)
+        ylim_phase_min = st.sidebar.number_input("phase ylim minimum", -6, 6, -4)
+        ylim_phase_max = st.sidebar.number_input("phase ylim minimum", -6, 6, 4)
         cmap = cm.magma
-        norm = Normalize(vmin=-3.2, vmax=3.2)
+        norm = Normalize(vmin=-np.pi, vmax=np.pi)
                 
         #plot phases in color with molt in thick scatters
         plot_SWI.plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min, ylim_phase_max, gfpdata_clean, dev_length, my_phase, molts_clean, intmolts_clean, corr_molt_entr_ph_L1,corr_molt_entr_ph_L2, corr_molt_entr_ph_L3, corr_molt_entr_ph_L4, corr_molt_exit_ph_L1, corr_molt_exit_ph_L2, corr_molt_exit_ph_L3, corr_molt_exit_ph_L4, molt_entr_ph_L1, molt_entr_ph_L2, molt_entr_ph_L3, molt_entr_ph_L4, molt_exit_ph_L1, molt_exit_ph_L2, molt_exit_ph_L3, molt_exit_ph_L4)
@@ -278,13 +278,20 @@ if st.sidebar.checkbox("plot GFP data with molts"):
 
         
         save_dir_data = st.sidebar.text_input("add location", "")
-        my_phase.to_csv(save_dir_data + "phase.csv") 
+        phase_melt.to_csv(save_dir_data + "phase_melt.csv")
         larval_stage_dur.to_csv(save_dir_data + "Larval_stage_durations.csv") 
         molt_dur.to_csv(save_dir_data + "Molt_durations.csv")
         intermolt_dur.to_csv(save_dir_data + "Intermolt_durations.csv")
         params_hilbert.to_csv(save_dir_data + "parameters_used_for_hilbert_analysis.csv")
         valid_worms_df.to_csv(save_dir_data + "valid_worms.csv")
-        pd.Dataframe(molt_phases_normal).to_csv(save_dir_data + "phases_at_molt_normal.csv")
-        pd.Dataframe(molt_phases_corr).to_csv(save_dir_data + "phases_at_molt_flipped.csv")
-        #write molting time points per worm
-        #write error prop data
+        pd.DataFrame(molt_phases_normal).to_csv(save_dir_data + "phases_at_molt_normal.csv")
+        pd.DataFrame(molt_phases_corr).to_csv(save_dir_data + "phases_at_molt_flipped.csv")
+
+        from pip._internal.operations import freeze
+        session_info = freeze.freeze()
+        versions = []
+        for p in session_info:
+            versions.append(p)
+        pd.DataFrame(versions).to_csv(save_dir_data + "session_info.txt", header=False, index = False)
+
+

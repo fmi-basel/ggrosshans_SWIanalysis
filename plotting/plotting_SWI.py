@@ -48,7 +48,7 @@ def plot_ind_worm_sidebar(gfpdata, f_clean, dev_length, molts, intmolts, worm_to
     ax.axvline(dev_length/6, 0, np.max(np.max(f_clean[worm_to_check])), color="black")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    st.sidebar.pyplot()
+    st.sidebar.pyplot(fig)
 
 
     #plot f_clean (interpolated data) to investigate molts and developmental length in more detail
@@ -85,9 +85,9 @@ def plot_gfp_and_molts(gfpdata, dev_length, f_clean_df_clean, alpha_mean, alpha_
     if st.checkbox("click for saving figure 1"):
         save_fig2 = str(st.text_input("location/filename to save the figure:", ""))
         plt.savefig(save_fig2)
-        st.pyplot()
+        st.pyplot(f)
     else:
-        st.pyplot()
+        st.pyplot(f)
 
 
 def plot_durations(molt_dur, intermolt_dur, larval_stage_dur, y_lim_low_molt, y_lim_high_molt, y_lim_low_intermolt, y_lim_high_intermolt, y_lim_low_larvalstage, y_lim_high_larvalstage):
@@ -114,9 +114,9 @@ def plot_durations(molt_dur, intermolt_dur, larval_stage_dur, y_lim_low_molt, y_
     if st.checkbox("click for saving figure 2"):
         save_fig3 = str(st.text_input("location/filename to save the figure:", ""))
         plt.savefig(save_fig3)
-        st.pyplot()
+        st.pyplot(fig)
     else:
-        st.pyplot()
+        st.pyplot(fig)
      
 
 #plot phases and phase at molt entry / exit
@@ -158,7 +158,7 @@ def plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min
         ax.set_ylim(ylim_phase_min, ylim_phase_max)
         plt.tight_layout()
 
-        st.pyplot()
+        st.pyplot(f)
 
     else:
         molt_phases_normal
@@ -177,9 +177,9 @@ def plot_phases(molt_phases_normal, molt_phases_corr, cmap, norm, ylim_phase_min
         if st.checkbox("click for saving figure 3"):
             save_fig4 = str(st.text_input("location/filename to save the figure:", ""))
             plt.savefig(save_fig4)
-            st.pyplot()
+            st.pyplot(f)
         else:
-            st.pyplot()
+            st.pyplot(f)
 
 
 def plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4, std_phases_all):
@@ -208,9 +208,9 @@ def plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4
     if st.checkbox("click for saving figure 4"):
         save_fig5 = str(st.text_input("location/filename to save the figure:", ""))
         plt.savefig(save_fig5)
-        st.pyplot()
+        st.pyplot(f)
     else:
-        st.pyplot()
+        st.pyplot(f)
 
 
 

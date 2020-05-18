@@ -54,7 +54,7 @@ def test_calculate_durations():
 
 
 
-def test_run_hilbert():
+def test_hilbert_and_periods():
     lowcut = 1/14 #default in procswi
     highcut = 1/5 #default in procswi
     fs = 6
@@ -63,5 +63,11 @@ def test_run_hilbert():
                                                         highcut, 
                                                         fs, 
                                                         dev_length)
+
+    L2_per, L3_per, L4_per = processing_SWI.period_per_LS(PeriodoverTime, gfpdata, intmolts)
+
     assert np.max(my_phase) <= np.pi and np.min(my_phase) >= -np.pi
-    assert len(my_phase) 
+    assert len(my_phase[1]) == dev_length
+    assert len(L2_per) == len(my_phase)
+    assert np.round(L3_per[3],2) == 7.75
+
