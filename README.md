@@ -6,7 +6,7 @@
 
 Download the source code
 ```bash
-git clone https://github.com/fmi-basel/ggrosshans_SWIanalysis/tree/GUI_v2.git
+git clone https://github.com/fmi-basel/ggrosshans_SWIanalysis.git
 ```
 
 Enter the directory

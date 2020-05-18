@@ -6,4 +6,5 @@ matplotlib>=3.0.0
 scipy>=1.2
 uncertainties>=3.0
 streamlit>=0.57.1
-PIL>=6.2.0
+tornado<6.0,>=5.0
+pillow>=6.2.0
