@@ -18,6 +18,10 @@ import os
 from PIL import Image
 import processing.procswi as proc_swi #these are the custom functions for the single worm imaging analysis
 import plotting.plotting_SWI as plot_SWI
+try:
+    from pip._internal.operations import freeze
+except ImportError:  # pip < 10.0
+    from pip.operations import freeze
 
 #make text interpretable for adobe illustrator
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -269,6 +273,8 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         plot_SWI.plot_period_and_error_prop(larval_stage_dur, period_L2, period_L3, period_L4, std_phases_all)
 
     #export results and parameters
+
+
     st.sidebar.title("export results")
     if st.sidebar.checkbox("Save results in following directory"):
         
@@ -286,12 +292,13 @@ if st.sidebar.checkbox("plot GFP data with molts"):
         valid_worms_df.to_csv(save_dir_data + "valid_worms.csv")
         pd.DataFrame(molt_phases_normal).to_csv(save_dir_data + "phases_at_molt_normal.csv")
         pd.DataFrame(molt_phases_corr).to_csv(save_dir_data + "phases_at_molt_flipped.csv")
+        #save version infos
+        def save_session_info():
+            session_info = freeze.freeze()
+            versions = []
+            for p in session_info:
+                versions.append(p)
+            return pd.DataFrame(versions)
 
-        from pip._internal.operations import freeze
-        session_info = freeze.freeze()
-        versions = []
-        for p in session_info:
-            versions.append(p)
-        pd.DataFrame(versions).to_csv(save_dir_data + "session_info.txt", header=False, index = False)
-
-
+        version_info = save_session_info()
+        version_info.to_csv(save_dir_data + "session_info.txt", header=False, index = False)
