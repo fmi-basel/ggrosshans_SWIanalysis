@@ -23,6 +23,8 @@ try:
 except ImportError:  # pip < 10.0
     from pip.operations import freeze
 
+st.set_option('deprecation.showfileUploaderEncoding', False) # to suppress the warning for file_uploader
+
 #make text interpretable for adobe illustrator
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42

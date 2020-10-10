@@ -11,7 +11,6 @@ import time
 import io
 import os
 import streamlit as st
-from PIL import Image
 
 
 #Lethargus analysis including progress bar
